@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { TEMPLATE_THUMBS, THUMB_MAP } from './LandingThumbs'
+import { TEMPLATE_THUMBS } from './LandingThumbs'
 
 type FeaturedTemplate = {
   slug: string
@@ -17,7 +17,6 @@ type Card = {
   name: string
   tags: string[]
   url: string
-  Thumb: () => React.ReactElement
 }
 
 type Props = {
@@ -28,25 +27,22 @@ type Props = {
 export default function TemplatesSection({ featured, templateCount }: Props) {
   const [filter, setFilter] = useState('all')
 
-  // Prefer DB-driven featured templates; only those with a real Thumb component
-  // can render. Fall back to the in-code list if the DB returned nothing.
+  // Prefer DB-driven featured templates; fall back to the in-code list if the
+  // DB returned nothing. Each card renders a real pre-rendered preview image
+  // (public/template-thumbs/<slug>.webp), not a hand-drawn mockup.
   const cards: Card[] =
     featured && featured.length > 0
-      ? featured
-          .filter((t) => THUMB_MAP[t.slug])
-          .map((t) => ({
-            id: t.slug,
-            name: t.name,
-            tags: t.tags,
-            url: t.url,
-            Thumb: THUMB_MAP[t.slug],
-          }))
+      ? featured.map((t) => ({
+          id: t.slug,
+          name: t.name,
+          tags: t.tags,
+          url: t.url,
+        }))
       : TEMPLATE_THUMBS.map((t) => ({
           id: t.id,
           name: t.name,
           tags: t.tags,
           url: t.url,
-          Thumb: t.Thumb,
         }))
 
   const total = templateCount ?? cards.length
@@ -90,7 +86,6 @@ export default function TemplatesSection({ featured, templateCount }: Props) {
           style={filter !== 'all' ? { animation: 'none', justifyContent: 'flex-start', flexWrap: 'wrap', padding: '12px 32px', maxWidth: 1320, margin: '0 auto' } : {}}
         >
           {track.map((tpl, i) => {
-            const Thumb = tpl.Thumb
             const realIndex = i >= items.length ? i - items.length : i
             return (
               <div className="thumb" key={`${tpl.id}-${i}`}>
@@ -99,7 +94,16 @@ export default function TemplatesSection({ featured, templateCount }: Props) {
                   <div className="url">{tpl.url}</div>
                   <span style={{ width: 12 }} />
                 </div>
-                <div className="thumb-port"><Thumb /></div>
+                <div className="thumb-port">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/template-thumbs/${tpl.id}.webp`}
+                    alt={`${tpl.name} preview`}
+                    loading="lazy"
+                    decoding="async"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
+                  />
+                </div>
                 <div className="thumb-meta">
                   <h4>{tpl.name}</h4>
                   <span className="num">№ {String(realIndex + 1).padStart(2, '0')}</span>

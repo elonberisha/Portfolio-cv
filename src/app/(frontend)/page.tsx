@@ -1,6 +1,6 @@
 import CounterBand from '@/components/landing/CounterBand'
 import DeployWidget from '@/components/landing/DeployWidget'
-import { TEMPLATE_THUMBS, THUMB_MAP } from '@/components/landing/LandingThumbs'
+import { TEMPLATE_THUMBS } from '@/components/landing/LandingThumbs'
 import TemplatesSection from '@/components/landing/TemplatesSection'
 import { isAuthenticated } from '@/lib/auth'
 import { getLandingData, type FeaturedStudent } from '@/lib/stats'
@@ -36,19 +36,25 @@ function Hero({ loggedIn, templateCount }: { loggedIn: boolean; templateCount: n
 
       <div className="hero-right">
         <div className="hero-stack">
-          {previews.map((tpl, index) => {
-            const Thumb = tpl.Thumb
-            return (
-              <div key={tpl.id} className={`preview p${index + 1}`}>
-                <div className="chrome">
-                  <div className="dots"><i></i><i></i><i></i></div>
-                  <div className="url">{tpl.url}</div>
-                  <div style={{ width: 32 }} />
-                </div>
-                <div className="port"><Thumb /></div>
+          {previews.map((tpl, index) => (
+            <div key={tpl.id} className={`preview p${index + 1}`}>
+              <div className="chrome">
+                <div className="dots"><i></i><i></i><i></i></div>
+                <div className="url">{tpl.url}</div>
+                <div style={{ width: 32 }} />
               </div>
-            )
-          })}
+              <div className="port">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/template-thumbs/${tpl.id}.webp`}
+                  alt={`${tpl.name} preview`}
+                  loading="eager"
+                  decoding="async"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
+                />
+              </div>
+            </div>
+          ))}
           <div className="floater f1">Free forever - {templateCount} templates</div>
           <div className="floater f2">live in 60s</div>
         </div>
@@ -148,7 +154,7 @@ function Students({ students }: { students: FeaturedStudent[] }) {
       </div>
       <div className="students">
         {students.map((student) => {
-          const Thumb = (student.templateSlug && THUMB_MAP[student.templateSlug]) || TEMPLATE_THUMBS[0].Thumb
+          const slug = student.templateSlug || TEMPLATE_THUMBS[0].id
           const role = student.university ?? student.facultyGroup ?? 'Student'
           return (
             <div className="student-card" key={student.subdomain}>
@@ -157,7 +163,16 @@ function Students({ students }: { students: FeaturedStudent[] }) {
                 <div className="url">{student.url}</div>
                 <span style={{ width: 18 }} />
               </div>
-              <div className="preview"><Thumb /></div>
+              <div className="preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/template-thumbs/${slug}.webp`}
+                  alt={`${student.name} portfolio preview`}
+                  loading="lazy"
+                  decoding="async"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
+                />
+              </div>
               <div className="meta-stu">
                 <div className="avatar">{initials(student.name)}</div>
                 <div className="who"><b>{student.name}</b><small>{role}</small></div>
