@@ -1,0 +1,34 @@
+{
+  "name": "portfolio-cv.online",
+  "version": "1.0.0",
+  "description": "Free portfolio & CV platform for university students",
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "generate:types": "payload generate:types",
+    "generate:importmap": "payload generate:importmap",
+    "postinstall": "node scripts/patch-payload-hydration.js"
+  },
+  "dependencies": {
+    "@payloadcms/db-postgres": "^3.85.0",
+    "@payloadcms/db-sqlite": "^3.85.0",
+    "@payloadcms/graphql": "^3.85.0",
+    "@payloadcms/next": "^3.85.0",
+    "@payloadcms/richtext-lexical": "^3.85.0",
+    "@payloadcms/ui": "^3.85.0",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "graphql": "^16.14.0",
+    "next": "^16.2.6",
+    "payload": "^3.85.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "sharp": "^0.34.5",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "sass": "^1.100.0"
+  }
+}

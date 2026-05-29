@@ -1,0 +1,31 @@
+
+> portfolio-cv.online@1.0.0 start
+> next start
+
+▲ Next.js 16.2.6
+- Local:         http://localhost:3000
+- Network:       http://100.124.204.19:3000
+✓ Ready in 430ms
+[11:31:53] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[21:44:12] [31mERROR[39m: [36mThe email or password provided is incorrect.[39m
+    err: {
+      "type": "g",
+      "message": "The email or password provided is incorrect.",
+      "stack":
+          g: The email or password provided is incorrect.
+              at a7 (C:\Projects\portfolio-cv.online\.next\server\chunks\ssr\node_modules_06yzt.8._.js:4:63632)
+              at async l (C:\Projects\portfolio-cv.online\.next\server\chunks\ssr\node_modules_06yzt.8._.js:4:66055)
+              at async Z (C:\Projects\portfolio-cv.online\.next\server\chunks\_0_omzlo._.js:1:17882)
+              at async C:\Projects\portfolio-cv.online\.next\server\chunks\_0_omzlo._.js:1:26287
+              at async rW.do (C:\Projects\portfolio-cv.online\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20926)
+              at async rW.handle (C:\Projects\portfolio-cv.online\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25781)
+              at async c (C:\Projects\portfolio-cv.online\.next\server\chunks\_0_omzlo._.js:1:30928)
+              at async rW.handleResponse (C:\Projects\portfolio-cv.online\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (C:\Projects\portfolio-cv.online\.next\server\chunks\_0_omzlo._.js:1:31969)
+              at async Module.T [as handler] (C:\Projects\portfolio-cv.online\.next\server\chunks\_0_omzlo._.js:1:33076)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 401,
+      "name": "g"
+    }

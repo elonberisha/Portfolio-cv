@@ -1,0 +1,288 @@
+/* ── Shell: cool neutral grays + one accent ─────────────────────── */
+:root{
+  --ink:        oklch(0.18 0.01 250);
+  --paper:      oklch(0.985 0.003 250);
+  --hairline:   oklch(0.86 0.005 250);
+  --muted:      oklch(0.58 0.008 250);
+  --accent:     oklch(0.58 0.16 28);   /* warm vermillion — used sparingly */
+  --shell-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --shell-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--shell-sans); }
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Top bar ──────────────────────────────────────────────────── */
+.shell-top{
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; padding: 14px 28px;
+  background: color-mix(in oklch, var(--paper) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--hairline);
+}
+.shell-brand{ display:flex; align-items:baseline; gap:14px; }
+.shell-brand .mark{
+  font-family: var(--shell-mono); font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
+  border: 1px solid var(--ink); padding: 4px 8px; border-radius: 3px;
+}
+.shell-brand .title{ font-size: 13px; color: var(--muted); }
+.shell-brand .title b{ color: var(--ink); font-weight: 500; }
+
+.shell-meta{
+  font-family: var(--shell-mono); font-size: 11px; color: var(--muted);
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+
+/* ── Tab strip ────────────────────────────────────────────────── */
+.tab-strip{
+  display: flex; gap: 0; padding: 0 28px;
+  border-bottom: 1px solid var(--hairline);
+  overflow-x: auto; scrollbar-width: none;
+  background: var(--paper);
+  position: sticky; top: 57px; z-index: 49;
+}
+.tab-strip::-webkit-scrollbar{ display:none; }
+.tab{
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border: 0; background: transparent;
+  font-family: var(--shell-sans); font-size: 13px; color: var(--muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer; white-space: nowrap;
+  transition: color .12s ease, border-color .12s ease, background .12s ease;
+}
+.tab:hover{ color: var(--ink); background: color-mix(in oklch, var(--ink) 3%, transparent); }
+.tab .num{
+  font-family: var(--shell-mono); font-size: 10px; color: var(--muted);
+  letter-spacing: 0.06em;
+}
+.tab[data-active="1"]{
+  color: var(--ink); border-bottom-color: var(--ink); font-weight: 500;
+}
+.tab[data-active="1"] .num{ color: var(--accent); }
+
+/* ── Stage where the template renders ─────────────────────────── */
+.stage{
+  padding: 28px 28px 80px;
+  display: flex; flex-direction: column; gap: 22px;
+  max-width: 1440px; margin: 0 auto;
+}
+.stage-head{
+  display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 24px;
+  padding-bottom: 18px; border-bottom: 1px solid var(--hairline);
+}
+.stage-head h2{
+  margin: 0; font-family: var(--shell-sans); font-weight: 600;
+  font-size: 28px; letter-spacing: -0.02em;
+}
+.stage-head .kicker{
+  font-family: var(--shell-mono); font-size: 11px; letter-spacing: 0.08em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 6px;
+}
+.stage-head .blurb{ color: var(--muted); font-size: 13px; max-width: 560px; line-height: 1.55; }
+.stage-head .tags{ display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.stage-head .tag{
+  font-family: var(--shell-mono); font-size: 10px; color: var(--muted);
+  border: 1px solid var(--hairline); padding: 3px 8px; border-radius: 999px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+
+/* ── Device frames ────────────────────────────────────────────── */
+.frames{
+  display: grid; grid-template-columns: 1fr 380px; gap: 26px;
+  align-items: start;
+}
+.frame-wrap{ display: flex; flex-direction: column; gap: 10px; }
+.frame-cap{
+  font-family: var(--shell-mono); font-size: 10px; color: var(--muted);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 10px;
+}
+.frame-cap .dot{ width: 6px; height: 6px; background: var(--muted); border-radius: 999px; }
+
+/* Browser frame */
+.browser{
+  position: relative;
+  border: 1px solid var(--hairline);
+  border-radius: 10px; overflow: hidden;
+  background: white; box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 24px 60px -30px rgba(0,0,0,0.18);
+}
+.browser-chrome{
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: oklch(0.96 0.003 250);
+  border-bottom: 1px solid var(--hairline);
+}
+.browser-chrome .dots{ display:flex; gap:6px; }
+.browser-chrome .dots i{ width:10px; height:10px; border-radius:999px; background: oklch(0.84 0.005 250); display:block; }
+.browser-chrome .url{
+  flex: 1; text-align:center; font-family: var(--shell-mono); font-size: 11px;
+  color: var(--muted); padding: 4px 12px; background: white;
+  border: 1px solid var(--hairline); border-radius: 6px;
+}
+.browser-port{
+  height: 760px; overflow-y: auto; overflow-x: hidden;
+  scrollbar-width: thin;
+  background: white;
+}
+.browser-port::-webkit-scrollbar{ width: 6px; }
+.browser-port::-webkit-scrollbar-thumb{ background: oklch(0.85 0.005 250); border-radius: 99px; }
+
+/* Phone frame */
+.phone{
+  position: relative;
+  width: 340px; aspect-ratio: 9 / 19.5;
+  border: 1px solid var(--hairline);
+  border-radius: 38px;
+  padding: 10px;
+  background: oklch(0.95 0.003 250);
+  box-shadow: 0 24px 60px -30px rgba(0,0,0,0.2);
+}
+.phone-port{
+  width: 100%; height: 100%;
+  border-radius: 28px; overflow: hidden;
+  background: white;
+  overflow-y: auto; scrollbar-width: none;
+}
+.phone-port::-webkit-scrollbar{ display: none; }
+.phone-notch{
+  width: 110px; height: 26px; margin: 0 auto -10px;
+  background: oklch(0.1 0.005 250); border-radius: 0 0 14px 14px;
+  position: relative; z-index: 2;
+}
+
+/* ── Carousel arrows ──────────────────────────────────────────── */
+.nav-arrows{ display: flex; gap: 8px; }
+.nav-arrows button{
+  appearance: none; border: 1px solid var(--hairline); background: white; color: var(--ink);
+  width: 34px; height: 34px; border-radius: 999px; cursor: pointer;
+  font-family: var(--shell-mono); font-size: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .12s ease, border-color .12s ease;
+}
+.nav-arrows button:hover{ background: oklch(0.96 0.003 250); }
+.nav-arrows button:disabled{ opacity: 0.35; cursor: not-allowed; }
+
+/* ── Footer note ──────────────────────────────────────────────── */
+.shell-foot{
+  padding: 16px 28px 40px; color: var(--muted); font-size: 12px;
+  border-top: 1px solid var(--hairline); margin-top: 20px;
+  display: flex; justify-content: space-between; gap: 24px;
+  font-family: var(--shell-mono); letter-spacing: 0.04em;
+}
+
+/* ── Shared content helpers (templates use their own systems) ─── */
+.tpl-root{ position: relative; min-height: 100%; }
+.tpl-root img.ph{ display:block; width:100%; height:100%; object-fit:cover; }
+
+/* Generic “image placeholder” pattern, reusable */
+.imgph{
+  background:
+    repeating-linear-gradient(135deg,
+      color-mix(in oklch, currentColor 6%, transparent) 0 6px,
+      transparent 6px 12px),
+    color-mix(in oklch, currentColor 3%, transparent);
+  border: 1px dashed color-mix(in oklch, currentColor 25%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: "JetBrains Mono", monospace; font-size: 10px;
+  color: color-mix(in oklch, currentColor 60%, transparent);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  text-align: center; padding: 8px;
+}
+
+/* Reset for content scroll inside frames */
+.frame-port-root{
+  font-family: inherit; color: inherit;
+}
+
+/* ── Platform pill (overlay on each frame, NOT part of templates) ── */
+.platform-pill{
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  font-family: var(--shell-sans);
+  pointer-events: none;     /* let scroll pass through gaps */
+}
+.platform-pill > *{ pointer-events: auto; }
+
+.pp-btn{
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 14px 10px 12px;
+  background: oklch(0.18 0.01 250);   /* always platform black, ignores template theme */
+  color: oklch(0.985 0.003 250);
+  border: 1px solid oklch(0.28 0.01 250);
+  border-radius: 999px;
+  font-family: var(--shell-sans);
+  font-size: 13px; font-weight: 500;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.1) inset,
+    0 10px 24px -10px rgba(0,0,0,0.55),
+    0 2px 6px rgba(0,0,0,0.18);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.pp-btn:hover{
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.12) inset,
+    0 14px 28px -10px rgba(0,0,0,0.65),
+    0 3px 8px rgba(0,0,0,0.22);
+}
+.pp-btn:active{ transform: translateY(0); }
+
+.pp-icon{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  background: oklch(0.985 0.003 250);
+  color: oklch(0.18 0.01 250);
+  border-radius: 999px;
+  font-family: var(--shell-mono);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+.pp-lbl{ white-space: nowrap; }
+.pp-meta{
+  font-family: var(--shell-mono);
+  font-size: 10px;
+  color: oklch(0.7 0.005 250);
+  letter-spacing: 0.04em;
+  padding-left: 10px;
+  border-left: 1px solid oklch(0.32 0.01 250);
+  margin-left: 2px;
+  text-transform: uppercase;
+}
+
+.pp-foot{
+  font-family: var(--shell-mono);
+  font-size: 10px;
+  color: oklch(0.18 0.01 250);
+  background: color-mix(in oklch, white 80%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 4px 10px;
+  letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.pp-foot b{ font-family: var(--shell-sans); font-weight: 600; }
+.pp-dot{
+  width: 6px; height: 6px; border-radius: 999px;
+  background: oklch(0.62 0.16 145);   /* "live" green */
+  box-shadow: 0 0 0 3px color-mix(in oklch, oklch(0.62 0.16 145) 25%, transparent);
+}
+
+/* Compact variant inside phone frame */
+.platform-pill.pp-compact{ right: 18px; bottom: 18px; }
+.pp-compact .pp-btn{
+  padding: 8px 12px 8px 8px;
+  font-size: 12px;
+  gap: 6px;
+}
+.pp-compact .pp-icon{ width: 18px; height: 18px; font-size: 11px; }

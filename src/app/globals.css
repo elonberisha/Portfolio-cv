@@ -1,0 +1,62 @@
+/* Design tokens */
+:root {
+  --ink:        #1a1714;
+  --ink-2:      #7a746a;
+  --ink-3:      #b5afa7;
+  --paper:      #f7f3eb;
+  --paper-2:    #ede9de;
+  --paper-3:    #e4dfd5;
+  --white:      #ffffff;
+  --accent:     #7b2440;       /* bordeaux */
+  --accent-2:   #9f3154;       /* lighter hover */
+  --live:       #2a7d46;       /* success green */
+  --live-2:     #348f54;
+  --hairline:   #dfd9cf;
+  --hairline-2: #cdc7bd;
+
+  --serif: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  --sans:  var(--font-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono:  var(--font-jetbrains), 'Fira Code', 'Cascadia Code', monospace;
+
+  --radius-sm:  4px;
+  --radius:     8px;
+  --radius-lg:  12px;
+  --radius-xl:  20px;
+
+  --shadow-sm:  0 1px 3px rgba(26, 23, 20, 0.08);
+  --shadow:     0 4px 16px rgba(26, 23, 20, 0.10);
+  --shadow-lg:  0 12px 40px rgba(26, 23, 20, 0.14);
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}

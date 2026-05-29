@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<script>
+/* Set viewport BEFORE layout — must be inline + synchronous */
+(function(){
+  var mobile = new URLSearchParams(location.search).get('mobile') === '1';
+  document.write('<meta name="viewport" content="' + (mobile ? 'width=375' : 'width=1440') + '">');
+})();
+</script>
+<title>Template Preview</title>
+<link rel="stylesheet" href="shell.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Archivo+Black&family=VT323&family=DM+Sans:wght@400;500;700&family=Bebas+Neue&family=Caveat:wght@400;700&family=Patrick+Hand&family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Serif:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&family=Syne:wght@600;700;800&family=Instrument+Serif&family=Manrope:wght@400;600;800&family=Special+Elite&family=Major+Mono+Display&family=Unbounded:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; }
+  body { background: #fff; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="templates-sport-t44.jsx"></script>
+<script type="text/babel" src="templates-sport-t45.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="faculties.jsx"></script>
+<script type="text/babel" src="frames.jsx"></script>
+<script type="text/babel" src="templates-a.jsx"></script>
+<script type="text/babel" src="templates-b.jsx"></script>
+<script type="text/babel" src="templates-c.jsx"></script>
+<script type="text/babel" src="templates-d.jsx"></script>
+<script type="text/babel" src="templates-e.jsx"></script>
+<script type="text/babel" src="templates-f.jsx"></script>
+<script type="text/babel" src="templates-g.jsx"></script>
+<script type="text/babel" src="templates-cd-legal-brief.jsx"></script>
+<script type="text/babel" src="templates-cd-official-gazette.jsx"></script>
+<script type="text/babel" src="templates-cd-hearing-record.jsx"></script>
+<script type="text/babel" src="templates-cd-patient-chart.jsx"></script>
+<script type="text/babel" src="templates-cd-anatomical-plate.jsx"></script>
+<script type="text/babel" src="templates-cd-rx-prescription.jsx"></script>
+<script type="text/babel" src="templates-cd-training-log.jsx"></script>
+<script type="text/babel" src="templates-cd-field-journal.jsx"></script>
+<script type="text/babel" src="templates-cd-harvest-almanac.jsx"></script>
+<script type="text/babel" src="templates-cd-law-silk-iron.jsx"></script>
+<script type="text/babel" src="templates-cd-law-redacted.jsx"></script>
+<script type="text/babel" src="templates-cd-law-lex-futura.jsx"></script>
+<script type="text/babel" src="templates-med-vitals-monitor.jsx"></script>
+<script type="text/babel" src="templates-med-lancet.jsx"></script>
+<script type="text/babel" src="templates-med-pathology.jsx"></script>
+<script type="text/babel" src="templates-med-surgical.jsx"></script>
+<script type="text/babel" src="templates-med-nhs.jsx"></script>
+<script type="text/babel" src="templates-h.jsx"></script>
+<script type="text/babel" src="templates-i.jsx"></script>
+
+<script type="text/babel">
+/* global React, ReactDOM,
+   Tpl01Terminal, Tpl02Editorial, Tpl03Brutalist, Tpl04Y2K, Tpl05Swiss,
+   Tpl06Playful, Tpl073D, Tpl08Notebook, Tpl09Newspaper, Tpl10Corporate,
+   Tpl11BoardingPass, Tpl12Museum, Tpl13TradingCard, Tpl14Manifesto, Tpl15Atlas,
+   Tpl16Receipt, Tpl17Library, Tpl18Poster, Tpl19Finder, Tpl20Botanical,
+   Tpl21Resume, Tpl22Bento, Tpl23Notion, Tpl24Spare, Tpl25Blog,
+   Tpl26Blueprint, Tpl27Circuit, Tpl28SpecSheet, Tpl29Quarterly, Tpl30Bloomberg, Tpl31Ledger,
+   Tpl32LegalBrief, Tpl33Gazette, Tpl34Transcript, Tpl35PatientChart, Tpl36Anatomy, Tpl37Rx,
+   Tpl38Magazine, Tpl39RisoZine, Tpl40PhotoFolio, Tpl41ResearchPaper, Tpl42FieldNotebook, Tpl43Syllabus,
+   Tpl44Scoreboard, Tpl45AthleteCard, Tpl46TrainingLog, Tpl47FieldJournal, Tpl48Almanac, Tpl49SoilMap,
+   Tpl50SilkIron, Tpl51Redacted, Tpl52LexFutura,
+   Tpl53VitalsMonitor, Tpl54Lancet, Tpl55PathologyLab, Tpl56SurgicalBrief, Tpl57NhsClinical */
+
+const TEMPLATE_MAP = {
+  'terminal':       Tpl01Terminal,
+  'editorial':      Tpl02Editorial,
+  'brutalist':      Tpl03Brutalist,
+  'y2k':            Tpl04Y2K,
+  'swiss':          Tpl05Swiss,
+  'playful':        Tpl06Playful,
+  '3d':             Tpl073D,
+  'notebook':       Tpl08Notebook,
+  'newspaper':      Tpl09Newspaper,
+  'corporate':      Tpl10Corporate,
+  'boarding':       Tpl11BoardingPass,
+  'museum':         Tpl12Museum,
+  'tcg':            Tpl13TradingCard,
+  'manifesto':      Tpl14Manifesto,
+  'atlas':          Tpl15Atlas,
+  'receipt':        Tpl16Receipt,
+  'library':        Tpl17Library,
+  'poster':         Tpl18Poster,
+  'finder':         Tpl19Finder,
+  'botanical':      Tpl20Botanical,
+  'resume':         Tpl21Resume,
+  'bento':          Tpl22Bento,
+  'notion':         Tpl23Notion,
+  'spare':          Tpl24Spare,
+  'blog':           Tpl25Blog,
+  'blueprint':      Tpl26Blueprint,
+  'circuit':        Tpl27Circuit,
+  'specsheet':      Tpl28SpecSheet,
+  'quarterly':      Tpl29Quarterly,
+  'bloomberg':      Tpl30Bloomberg,
+  'ledger':         Tpl31Ledger,
+  'legalbrief':     Tpl32LegalBrief,
+  'gazette':        Tpl33Gazette,
+  'transcript':     Tpl34Transcript,
+  'chart':          Tpl35PatientChart,
+  'anatomy':        Tpl36Anatomy,
+  'rx':             Tpl37Rx,
+  'magazine':       Tpl38Magazine,
+  'risozine':       Tpl39RisoZine,
+  'photofolio':     Tpl40PhotoFolio,
+  'paper':          Tpl41ResearchPaper,
+  'fieldnotes':     Tpl42FieldNotebook,
+  'syllabus':       Tpl43Syllabus,
+  'scoreboard':     Tpl44Scoreboard,
+  'athletecard':    Tpl45AthleteCard,
+  'traininglog':    Tpl46TrainingLog,
+  'fieldjournal':   Tpl47FieldJournal,
+  'almanac':        Tpl48Almanac,
+  'soilmap':        Tpl49SoilMap,
+  'silkiron':       Tpl50SilkIron,
+  'redacted':       Tpl51Redacted,
+  'lexfutura':      Tpl52LexFutura,
+  'vitalsmonitor':  Tpl53VitalsMonitor,
+  'thelancet':      Tpl54Lancet,
+  'pathologylab':   Tpl55PathologyLab,
+  'surgicalbrief':  Tpl56SurgicalBrief,
+  'nhsclinical':    Tpl57NhsClinical,
+};
+
+const params = new URLSearchParams(window.location.search);
+const templateId = params.get('id') || 'terminal';
+const mobile = params.get('mobile') === '1';
+const dark = params.get('dark') === '1';
+
+const Comp = TEMPLATE_MAP[templateId];
+
+function App() {
+  if (!Comp) {
+    return (
+      <div style={{ padding: 40, fontFamily: 'monospace', color: '#888' }}>
+        Template "{templateId}" not found.
+      </div>
+    );
+  }
+  return <Comp mode={mobile ? 'mobile' : 'desktop'} dark={dark} />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

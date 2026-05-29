@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"portfolio-cv.online: DEV SERVER = npm run dev (webpack). Never --turbopack. Never next dev directly.\"}'",
+            "shell": "powershell"
+          }
+        ]
+      }
+    ]
+  }
+}
