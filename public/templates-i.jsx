@@ -291,25 +291,16 @@ function Tpl49SoilMap({ mode, dark }) {
   </>);
 }
 
-/* ─── EUPASS STANDARD CV (T58–T62) ─── 5 universal professional CVs ── */
-
-function Tpl58EupassClassic({ mode, dark }) {
-  return React.createElement(window.EupassCV_classic, { persona: PERSONAS.ewan_kavanagh, mode, dark });
-}
-
-function Tpl59EupassModern({ mode, dark }) {
-  return React.createElement(window.EupassCV_modern, { persona: PERSONAS.eve_hartwell, mode, dark });
-}
-
-function Tpl60EupassMinimal({ mode, dark }) {
-  return React.createElement(window.EupassCV_minimal, { persona: PERSONAS.developer, mode, dark });
-}
-
-function Tpl61EupassExecutive({ mode, dark }) {
-  return React.createElement(window.EupassCV_executive, { persona: PERSONAS.business, mode, dark });
-}
-
-function Tpl62EupassFresh({ mode, dark }) {
-  return React.createElement(window.EupassCV_fresh, { persona: PERSONAS.adam_lyle, mode, dark });
-}
+/* ─── Register all wrappers as globals so preview.html's TEMPLATE_MAP
+       can resolve them. These Claude Design versions intentionally override
+       the original Tpl32–37 defined in templates-g.jsx (loaded earlier). ─── */
+Object.assign(window, {
+  Tpl32LegalBrief, Tpl33Gazette, Tpl34Transcript,
+  Tpl35PatientChart, Tpl36Anatomy, Tpl37Rx,
+  Tpl44Scoreboard, Tpl45AthleteCard, Tpl46TrainingLog,
+  Tpl47FieldJournal, Tpl48Almanac, Tpl49SoilMap,
+  Tpl50SilkIron, Tpl51Redacted, Tpl52LexFutura,
+  Tpl53VitalsMonitor, Tpl54Lancet, Tpl55PathologyLab,
+  Tpl56SurgicalBrief, Tpl57NhsClinical,
+});
 
