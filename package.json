@@ -6,6 +6,7 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
+    "thumbs": "node scripts/gen-thumbs.mjs",
     "generate:types": "payload generate:types",
     "generate:importmap": "payload generate:importmap",
     "postinstall": "node scripts/patch-payload-hydration.js"
@@ -29,6 +30,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "puppeteer": "^24.43.1",
     "sass": "^1.100.0"
   }
 }
