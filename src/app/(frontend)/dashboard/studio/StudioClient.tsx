@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import StudioSidebar, { type SidebarInitial } from './StudioSidebar'
+import StudioSidebar, { type SidebarInitial, type CanvasField } from './StudioSidebar'
 import styles from './studio.module.css'
 
 type Props = {
@@ -28,6 +28,7 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
   const pendingImgId = useRef<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [hasHtml] = useState(Boolean(initialHtml.trim()))
+  const [fields, setFields] = useState<CanvasField[]>([])
 
   const save = useCallback(async (html: string) => {
     setStatus('saving')
@@ -44,9 +45,10 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
     }
   }, [])
 
-  // Push a structured field value to the canvas (data-field slots, if any).
-  const applyField = useCallback((field: string, value: string) => {
-    frameRef.current?.contentWindow?.postMessage({ type: 'editor:applyField', field, value }, '*')
+  // Edit one of the template's own text nodes from the sidebar Details form.
+  const setField = useCallback((id: string, value: string) => {
+    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, value } : f)))
+    frameRef.current?.contentWindow?.postMessage({ type: 'editor:setField', id, value }, '*')
   }, [])
 
   // Upload a replacement image to Media, then deliver its URL to the iframe.
@@ -77,6 +79,10 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
       } else if (d.type === 'editor:requestImage') {
         pendingImgId.current = d.id
         fileRef.current?.click()
+      } else if (d.type === 'editor:outline' && Array.isArray(d.fields)) {
+        setFields(d.fields)
+      } else if (d.type === 'editor:fieldInput' && d.id) {
+        setFields((prev) => prev.map((f) => (f.id === d.id ? { ...f, value: d.value } : f)))
       }
     }
     window.addEventListener('message', onMessage)
@@ -89,7 +95,8 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
         initial={details}
         status={status}
         templateName={templateName}
-        onApplyField={applyField}
+        fields={fields}
+        onSetField={setField}
       />
 
       <div className={styles.canvasWrap}>

@@ -5,40 +5,14 @@ import Link from 'next/link'
 
 import styles from './studio.module.css'
 
-const FACULTY_OPTIONS = [
-  { value: 'tech', label: 'Tech & Engineering' },
-  { value: 'business', label: 'Business & Management' },
-  { value: 'law', label: 'Law & Politics' },
-  { value: 'medical', label: 'Medical & Healthcare' },
-  { value: 'creative', label: 'Creative & Media' },
-  { value: 'education', label: 'Education & Social Sciences' },
-  { value: 'sports', label: 'Sports' },
-  { value: 'agriculture', label: 'Agriculture & Environment' },
-]
-
-const LINK_PLATFORMS = [
-  { value: 'linkedin', label: 'LinkedIn' },
-  { value: 'github', label: 'GitHub' },
-  { value: 'website', label: 'Website' },
-  { value: 'twitter', label: 'Twitter / X' },
-  { value: 'dribbble', label: 'Dribbble' },
-  { value: 'behance', label: 'Behance' },
-  { value: 'youtube', label: 'YouTube' },
-  { value: 'other', label: 'Other' },
-]
-
-type LinkRow = { platform: string; url: string }
-type EduRow = { degree: string; institution: string; startDate: string; endDate: string }
-type ProjectRow = { title: string; description: string; liveUrl: string }
+export type CanvasField = {
+  id: string
+  label: string
+  value: string
+  multiline?: boolean
+}
 
 export type SidebarInitial = {
-  facultyGroup: string
-  headline: string
-  bio: string
-  skills: string
-  links: LinkRow[]
-  education: EduRow[]
-  projects: ProjectRow[]
   published: boolean
 }
 
@@ -46,55 +20,17 @@ type Props = {
   initial: SidebarInitial
   status: 'idle' | 'saving' | 'saved'
   templateName: string | null
-  // Push a field value onto the live canvas (data-field slots).
-  onApplyField: (field: string, value: string) => void
+  // The template's own editable text nodes, streamed live from the canvas.
+  fields: CanvasField[]
+  // Edit one of those nodes from the sidebar.
+  onSetField: (id: string, value: string) => void
 }
 
-type Tab = 'ops' | 'details'
+type Tab = 'details' | 'ops'
 
-export default function StudioSidebar({ initial, status, templateName, onApplyField }: Props) {
-  const [tab, setTab] = useState<Tab>('ops')
-  const [facultyGroup, setFacultyGroup] = useState(initial.facultyGroup)
-  const [headline, setHeadline] = useState(initial.headline)
-  const [bio, setBio] = useState(initial.bio)
-  const [skills, setSkills] = useState(initial.skills)
-  const [links, setLinks] = useState<LinkRow[]>(initial.links.length ? initial.links : [])
-  const [education, setEducation] = useState<EduRow[]>(initial.education)
-  const [projects, setProjects] = useState<ProjectRow[]>(initial.projects)
+export default function StudioSidebar({ initial, status, templateName, fields, onSetField }: Props) {
+  const [tab, setTab] = useState<Tab>('details')
   const [published, setPublished] = useState(initial.published)
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState('')
-
-  async function saveDetails() {
-    setSaving(true)
-    setMsg('')
-    try {
-      const res = await fetch('/api/portfolio', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          facultyGroup,
-          headline,
-          bio,
-          links,
-          education,
-          projects,
-          skills: skills.split(',').map((s) => s.trim()).filter(Boolean).map((name) => ({ name })),
-        }),
-      })
-      setMsg(res.ok ? 'Saved.' : 'Could not save.')
-      // Reflect text fields onto the canvas where slots exist.
-      if (res.ok) {
-        onApplyField('headline', headline)
-        onApplyField('bio', bio)
-      }
-    } catch {
-      setMsg('Could not save.')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   async function togglePublish() {
     const next = !published
@@ -122,15 +58,40 @@ export default function StudioSidebar({ initial, status, templateName, onApplyFi
       </div>
 
       <div className={styles.tabs}>
-        <button type="button" className={tab === 'ops' ? styles.tabActive : styles.tab} onClick={() => setTab('ops')}>
-          Operations
-        </button>
         <button type="button" className={tab === 'details' ? styles.tabActive : styles.tab} onClick={() => setTab('details')}>
           Details
+        </button>
+        <button type="button" className={tab === 'ops' ? styles.tabActive : styles.tab} onClick={() => setTab('ops')}>
+          Operations
         </button>
       </div>
 
       <div className={styles.sideScroll}>
+        {tab === 'details' && (
+          <div className={styles.detForm}>
+            {fields.length === 0 ? (
+              <p className={styles.opHint}>
+                Loading your template’s content… each heading and text block will appear here to edit.
+              </p>
+            ) : (
+              fields.map((f, i) => (
+                <label className={styles.field} key={f.id}>
+                  <span>{f.label}{labelSuffix(fields, i)}</span>
+                  {f.multiline ? (
+                    <textarea
+                      rows={3}
+                      value={f.value}
+                      onChange={(e) => onSetField(f.id, e.target.value)}
+                    />
+                  ) : (
+                    <input value={f.value} onChange={(e) => onSetField(f.id, e.target.value)} />
+                  )}
+                </label>
+              ))
+            )}
+          </div>
+        )}
+
         {tab === 'ops' && (
           <div className={styles.ops}>
             <div className={styles.opGroup}>
@@ -157,84 +118,15 @@ export default function StudioSidebar({ initial, status, templateName, onApplyFi
             </div>
           </div>
         )}
-
-        {tab === 'details' && (
-          <div className={styles.detForm}>
-            <section className={styles.detBlock}>
-              <h3>Basics</h3>
-              <label className={styles.field}>
-                <span>Faculty group</span>
-                <select value={facultyGroup} onChange={(e) => setFacultyGroup(e.target.value)}>
-                  <option value="">Select your field…</option>
-                  {FACULTY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </label>
-              <label className={styles.field}>
-                <span>Headline</span>
-                <input value={headline} placeholder="CS student & web developer" onChange={(e) => setHeadline(e.target.value)} />
-              </label>
-              <label className={styles.field}>
-                <span>Short bio</span>
-                <textarea rows={4} value={bio} onChange={(e) => setBio(e.target.value)} />
-              </label>
-              <label className={styles.field}>
-                <span>Skills (comma-separated)</span>
-                <input value={skills} placeholder="React, Python, Figma…" onChange={(e) => setSkills(e.target.value)} />
-              </label>
-            </section>
-
-            <section className={styles.detBlock}>
-              <h3>Links</h3>
-              {links.map((row, i) => (
-                <div className={styles.dRow} key={i}>
-                  <select value={row.platform} onChange={(e) => setLinks(links.map((r, j) => j === i ? { ...r, platform: e.target.value } : r))}>
-                    {LINK_PLATFORMS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                  <input value={row.url} placeholder="https://…" onChange={(e) => setLinks(links.map((r, j) => j === i ? { ...r, url: e.target.value } : r))} />
-                  <button type="button" className={styles.remove} onClick={() => setLinks(links.filter((_, j) => j !== i))}>×</button>
-                </div>
-              ))}
-              <button type="button" className={styles.add} onClick={() => setLinks([...links, { platform: 'other', url: '' }])}>+ Add link</button>
-            </section>
-
-            <section className={styles.detBlock}>
-              <h3>Education</h3>
-              {education.map((row, i) => (
-                <div className={styles.dCard} key={i}>
-                  <input value={row.degree} placeholder="Degree" onChange={(e) => setEducation(education.map((r, j) => j === i ? { ...r, degree: e.target.value } : r))} />
-                  <input value={row.institution} placeholder="Institution" onChange={(e) => setEducation(education.map((r, j) => j === i ? { ...r, institution: e.target.value } : r))} />
-                  <div className={styles.dGrid2}>
-                    <input value={row.startDate} placeholder="Start" onChange={(e) => setEducation(education.map((r, j) => j === i ? { ...r, startDate: e.target.value } : r))} />
-                    <input value={row.endDate} placeholder="End" onChange={(e) => setEducation(education.map((r, j) => j === i ? { ...r, endDate: e.target.value } : r))} />
-                  </div>
-                  <button type="button" className={styles.removeWide} onClick={() => setEducation(education.filter((_, j) => j !== i))}>Remove</button>
-                </div>
-              ))}
-              <button type="button" className={styles.add} onClick={() => setEducation([...education, { degree: '', institution: '', startDate: '', endDate: '' }])}>+ Add education</button>
-            </section>
-
-            <section className={styles.detBlock}>
-              <h3>Projects & work</h3>
-              {projects.map((row, i) => (
-                <div className={styles.dCard} key={i}>
-                  <input value={row.title} placeholder="Title" onChange={(e) => setProjects(projects.map((r, j) => j === i ? { ...r, title: e.target.value } : r))} />
-                  <textarea rows={2} value={row.description} placeholder="What it is and what you did." onChange={(e) => setProjects(projects.map((r, j) => j === i ? { ...r, description: e.target.value } : r))} />
-                  <input value={row.liveUrl} placeholder="Link (optional)" onChange={(e) => setProjects(projects.map((r, j) => j === i ? { ...r, liveUrl: e.target.value } : r))} />
-                  <button type="button" className={styles.removeWide} onClick={() => setProjects(projects.filter((_, j) => j !== i))}>Remove</button>
-                </div>
-              ))}
-              <button type="button" className={styles.add} onClick={() => setProjects([...projects, { title: '', description: '', liveUrl: '' }])}>+ Add project</button>
-            </section>
-
-            <div className={styles.detActions}>
-              <button type="button" className={styles.saveBtn} onClick={saveDetails} disabled={saving}>
-                {saving ? 'Saving…' : 'Save details'}
-              </button>
-              {msg && <span className={styles.msg}>{msg}</span>}
-            </div>
-          </div>
-        )}
       </div>
     </aside>
   )
+}
+
+// Number repeated labels (Heading 1, Heading 2…) so fields stay distinguishable.
+function labelSuffix(fields: CanvasField[], index: number) {
+  const label = fields[index].label
+  const sameBefore = fields.slice(0, index).filter((f) => f.label === label).length
+  const sameTotal = fields.filter((f) => f.label === label).length
+  return sameTotal > 1 ? ` ${sameBefore + 1}` : ''
 }

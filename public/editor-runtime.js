@@ -13,7 +13,10 @@
  *   -> parent: { type: 'editor:change', html }      (debounced autosave)
  *   -> parent: { type: 'editor:ready' }
  *   -> parent: { type: 'editor:requestImage', id }  (ask for an upload)
+ *   -> parent: { type: 'editor:outline', fields }   (the template's editable text)
+ *   -> parent: { type: 'editor:fieldInput', id, value } (canvas edit -> sidebar)
  *   <- parent: { type: 'editor:setImage', id, url } (deliver uploaded url)
+ *   <- parent: { type: 'editor:setField', id, value } (sidebar edit -> canvas)
  *   <- parent: { type: 'editor:applyField', field, value }
  */
 (function () {
@@ -24,8 +27,10 @@
     SECTION: 1, ARTICLE: 1, DIV: 1, LI: 1, FIGURE: 1, ASIDE: 1, HEADER: 1, FOOTER: 1, NAV: 1,
   }
   var saveTimer = null
+  var outlineTimer = null
   var pendingImg = null
   var imgSeq = 0
+  var fieldSeq = 0
 
   function isTextLeaf(el) {
     if (SKIP_TAGS[el.tagName]) return false
@@ -66,15 +71,63 @@
   }
 
   // ---- inline text editing -------------------------------------------------
+  function onTextInput(e) {
+    var el = e.currentTarget
+    scheduleSave()
+    parent.postMessage({
+      type: 'editor:fieldInput',
+      id: el.getAttribute('data-ed-field'),
+      value: el.textContent,
+    }, '*')
+  }
+
   function enableText() {
     var all = document.body.querySelectorAll('*')
     all.forEach(function (el) {
       if (isTextLeaf(el)) {
-        el.setAttribute('contenteditable', 'true')
-        el.addEventListener('blur', scheduleSave)
-        el.addEventListener('input', scheduleSave)
+        if (el.getAttribute('contenteditable') !== 'true') {
+          el.setAttribute('contenteditable', 'true')
+          el.addEventListener('blur', scheduleSave)
+          el.addEventListener('input', onTextInput)
+        }
+        if (!el.hasAttribute('data-ed-field')) {
+          el.setAttribute('data-ed-field', 'f' + (++fieldSeq))
+        }
       }
     })
+  }
+
+  // ---- editable-text outline (drives the sidebar Details form) -------------
+  function labelFor(el) {
+    var t = el.tagName
+    if (/^H[1-6]$/.test(t)) return 'Heading'
+    if (t === 'A') return 'Link text'
+    if (t === 'BUTTON') return 'Button'
+    if (t === 'LI') return 'List item'
+    if (t === 'BLOCKQUOTE') return 'Quote'
+    if (t === 'P') return 'Paragraph'
+    return 'Text'
+  }
+
+  function postOutline() {
+    var list = []
+    document.querySelectorAll('[data-ed-field]').forEach(function (el) {
+      if (el.closest('[data-editor-ui]')) return
+      var v = el.textContent.trim()
+      if (!v) return
+      list.push({
+        id: el.getAttribute('data-ed-field'),
+        label: labelFor(el),
+        value: el.textContent,
+        multiline: el.tagName === 'P' || el.tagName === 'BLOCKQUOTE' || v.length > 60,
+      })
+    })
+    parent.postMessage({ type: 'editor:outline', fields: list }, '*')
+  }
+
+  function scheduleOutline() {
+    if (outlineTimer) clearTimeout(outlineTimer)
+    outlineTimer = setTimeout(postOutline, 200)
   }
 
   // ---- block toolbar -------------------------------------------------------
@@ -107,6 +160,11 @@
           if (!current) return
           if (action === 'dup') {
             var copy = current.cloneNode(true)
+            // Fresh field ids for the duplicated subtree.
+            copy.removeAttribute('data-ed-field')
+            copy.querySelectorAll('[data-ed-field]').forEach(function (n) {
+              n.removeAttribute('data-ed-field')
+            })
             current.parentNode.insertBefore(copy, current.nextSibling)
             enableText()
           } else if (action === 'del') {
@@ -114,7 +172,7 @@
           } else if (action === 'hide') {
             current.style.display = 'none'
           }
-          scheduleSave()
+          scheduleSave(); scheduleOutline()
         })
       }
       bar.appendChild(b)
@@ -162,7 +220,7 @@
     if (last) dragging.parentNode.insertBefore(dragging, last.nextSibling)
   }
   function endDrag() {
-    if (dragging) { dragging.style.opacity = ''; dragging = null; scheduleSave() }
+    if (dragging) { dragging.style.opacity = ''; dragging = null; scheduleSave(); scheduleOutline() }
     document.removeEventListener('mousemove', onDragMove, true)
     document.removeEventListener('mouseup', endDrag, true)
   }
@@ -222,6 +280,10 @@
       var slot = document.querySelector('[data-field="' + d.field + '"]')
       if (slot) { slot.textContent = d.value; scheduleSave() }
     }
+    if (d.type === 'editor:setField') {
+      var node = document.querySelector('[data-ed-field="' + d.id + '"]')
+      if (node) { node.textContent = d.value; scheduleSave() }
+    }
   })
 
   function init() {
@@ -233,6 +295,7 @@
     enableText()
     toolbar = buildToolbar()
     wireBlocks()
+    postOutline()
     parent.postMessage({ type: 'editor:ready' }, '*')
   }
 

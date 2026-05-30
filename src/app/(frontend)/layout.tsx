@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import '../globals.css'
 import Navbar from '@/components/Navbar'
 import PublicFooter from '@/components/PublicFooter'
+import ChromeGate from '@/components/ChromeGate'
 
 export const metadata: Metadata = {
   title: 'portfolio-cv.online — Free portfolio for every student',
@@ -16,9 +17,13 @@ export default function FrontendLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <ChromeGate>
+        <Navbar />
+      </ChromeGate>
       {children}
-      <PublicFooter />
+      <ChromeGate>
+        <PublicFooter />
+      </ChromeGate>
     </>
   )
 }
