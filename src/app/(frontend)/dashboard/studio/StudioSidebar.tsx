@@ -73,8 +73,14 @@ export default function StudioSidebar({
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sideTop}>
-        <span className={styles.kicker}>Studio</span>
+        <div className={styles.brandRow}>
+          <span className={styles.kicker}>Studio</span>
+          <span className={styles.statusPill} data-live={published}>
+            {published ? 'Live' : 'Draft'}
+          </span>
+        </div>
         <b className={styles.sideTitle}>{templateName || 'Your template'}</b>
+        <span className={styles.status} data-state={status}>{statusText}</span>
       </div>
 
       <div className={styles.sideScroll}>
@@ -168,18 +174,20 @@ export default function StudioSidebar({
       </div>
 
       <div className={styles.sideFoot}>
-        <div className={styles.footRow}>
+        <div className={styles.pubCard} data-live={published}>
           <label className={styles.pub}>
-            <input type="checkbox" checked={published} onChange={togglePublish} />
+            <span className={styles.switch}>
+              <input type="checkbox" checked={published} onChange={togglePublish} />
+              <span className={styles.switchTrack} />
+            </span>
             <span className={styles.pubText}>
               <b data-live={published}>{published ? 'Live' : 'Draft'}</b>
               <small>{published ? 'Visible at your subdomain' : 'Only you can see it'}</small>
             </span>
           </label>
-          <span className={styles.status} data-state={status}>{statusText}</span>
         </div>
         <nav className={styles.footLinks}>
-          <Link href="/dashboard/cv">Build CV {'->'}</Link>
+          <Link href="/dashboard/cv" className={styles.footPrimary}>Build CV →</Link>
           <Link href="/templates">Change template</Link>
           <Link href="/dashboard">Dashboard</Link>
         </nav>

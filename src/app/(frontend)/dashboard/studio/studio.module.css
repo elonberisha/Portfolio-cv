@@ -1,6 +1,10 @@
+/* Pinned to the viewport so Payload's RootProvider wrapper / #portal sibling
+ * can't add document height below us (that was the stray cream band). Fixed +
+ * inset:0 takes the studio out of flow, so the page is exactly the viewport. */
 .studio {
+  position: fixed;
+  inset: 0;
   display: flex;
-  height: 100dvh;
   background: var(--paper);
   color: var(--ink);
   overflow: hidden;
@@ -45,9 +49,16 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 14px 16px 10px;
+  gap: 7px;
+  padding: 16px 18px 14px;
   border-bottom: 1px solid color-mix(in oklab, var(--paper) 14%, transparent);
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .kicker {
@@ -58,11 +69,30 @@
   color: var(--paper-3);
 }
 
+/* At-a-glance publish state, mirrored by the toggle in the footer. */
+.statusPill {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--paper) 22%, transparent);
+  color: var(--paper-3);
+}
+
+.statusPill[data-live='true'] {
+  color: var(--live);
+  border-color: color-mix(in oklab, var(--live) 55%, transparent);
+  background: color-mix(in oklab, var(--live) 16%, transparent);
+}
+
 .sideTitle {
   font-family: var(--serif);
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 400;
-  line-height: 1.05;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
 }
 
 .status {
@@ -83,7 +113,7 @@
 .sideScroll {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 14px 22px;
+  padding: 16px 16px 24px;
 }
 
 /* Empty-state copy + dismissible edit tip */
@@ -127,43 +157,95 @@
   color: var(--accent);
 }
 
-/* Pinned footer — publish toggle + save status + quick links, always visible */
+/* Pinned footer — the publish command bar + quick links, always visible */
 .sideFoot {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 16px 14px;
+  gap: 12px;
+  padding: 14px 18px 16px;
   border-top: 1px solid color-mix(in oklab, var(--paper) 14%, transparent);
   background: color-mix(in oklab, var(--ink) 92%, #000);
 }
 
-.footRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+/* The single action that matters — boxed so it reads as the primary control. */
+.pubCard {
+  border: 1px solid color-mix(in oklab, var(--paper) 14%, transparent);
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--paper) 5%, transparent);
+  transition: border-color 0.16s ease;
+}
+
+.pubCard[data-live='true'] {
+  border-color: color-mix(in oklab, var(--live) 45%, transparent);
+  background: color-mix(in oklab, var(--live) 9%, transparent);
 }
 
 .pub {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
   min-width: 0;
 }
 
-.pub input {
+/* Pure-CSS toggle switch built from a hidden checkbox. */
+.switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switchTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--paper) 20%, transparent);
+  transition: background 0.16s ease;
+  pointer-events: none;
+}
+
+.switchTrack::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
   width: 18px;
   height: 18px;
-  flex-shrink: 0;
-  accent-color: var(--live);
+  border-radius: 50%;
+  background: var(--paper);
+  transition: transform 0.16s ease;
+}
+
+.switch input:checked + .switchTrack {
+  background: var(--live);
+}
+
+.switch input:checked + .switchTrack::after {
+  transform: translateX(18px);
+}
+
+.switch input:focus-visible + .switchTrack {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .pubText {
   display: flex;
   flex-direction: column;
-  line-height: 1.25;
+  line-height: 1.3;
   min-width: 0;
 }
 
@@ -190,7 +272,8 @@
 .footLinks {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
+  align-items: center;
+  gap: 6px 14px;
 }
 
 .footLinks a {
@@ -202,6 +285,15 @@
 }
 
 .footLinks a:hover {
+  color: var(--accent);
+}
+
+.footLinks .footPrimary {
+  color: var(--paper);
+  font-weight: 500;
+}
+
+.footLinks .footPrimary:hover {
   color: var(--accent);
 }
 
@@ -448,13 +540,14 @@
 .sections {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .sec {
-  border: 1px solid color-mix(in oklab, var(--paper) 8%, transparent);
-  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--paper) 9%, transparent);
+  border-radius: 10px;
   overflow: hidden;
+  background: color-mix(in oklab, var(--paper) 3%, transparent);
 }
 
 .secHead {
@@ -462,7 +555,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 11px 12px;
+  padding: 12px 13px;
   background: transparent;
   border: none;
   color: var(--paper);
@@ -478,20 +571,26 @@
   flex: 1;
   min-width: 0;
   font-family: var(--serif);
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: 0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Field/item count as a small pill badge. */
 .secMeta {
   flex-shrink: 0;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--paper-3);
-  min-width: 18px;
-  text-align: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--paper) 10%, transparent);
 }
 
 .chevron {
@@ -581,6 +680,7 @@
 
 @media (max-width: 860px) {
   .studio {
+    position: static;
     flex-direction: column;
     height: auto;
     min-height: 100dvh;
