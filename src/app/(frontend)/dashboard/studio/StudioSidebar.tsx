@@ -186,8 +186,12 @@ export default function StudioSidebar({
             </span>
           </label>
         </div>
+        <Link href="/dashboard/cv" className={styles.nextBtn}>
+          Next: Build your CV
+          <span aria-hidden>→</span>
+        </Link>
+
         <nav className={styles.footLinks}>
-          <Link href="/dashboard/cv" className={styles.footPrimary}>Build CV →</Link>
           <Link href="/templates">Change template</Link>
           <Link href="/dashboard">Dashboard</Link>
         </nav>

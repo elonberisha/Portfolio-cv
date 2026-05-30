@@ -288,13 +288,32 @@
   color: var(--accent);
 }
 
-.footLinks .footPrimary {
-  color: var(--paper);
-  font-weight: 500;
+/* Primary forward action — studio auto-saves, so this is the "next step". */
+.nextBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.16s ease, color 0.16s ease;
 }
 
-.footLinks .footPrimary:hover {
-  color: var(--accent);
+.nextBtn:hover {
+  background: var(--accent);
+  color: var(--paper);
+}
+
+.nextBtn span {
+  font-size: 17px;
+  line-height: 1;
 }
 
 /* Details tab (form) */
@@ -678,7 +697,9 @@
   margin: 0;
 }
 
-@media (max-width: 860px) {
+/* Only stack into a single column on genuinely small screens (phones / very
+ * narrow windows). Desktop and tablet keep the two-pane panel + canvas. */
+@media (max-width: 640px) {
   .studio {
     position: static;
     flex-direction: column;
@@ -687,7 +708,7 @@
   }
   .sidebar {
     width: 100%;
-    max-height: 50vh;
+    max-height: 60vh;
   }
   .resizer {
     display: none;
