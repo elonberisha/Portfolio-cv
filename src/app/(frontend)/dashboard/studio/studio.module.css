@@ -309,6 +309,103 @@
   color: var(--live);
 }
 
+/* Details tab — section accordion */
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sec {
+  border: 1px solid color-mix(in oklab, var(--paper) 12%, transparent);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.secHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  background: color-mix(in oklab, var(--paper) 6%, transparent);
+  border: none;
+  color: var(--paper);
+  cursor: pointer;
+  text-align: left;
+}
+
+.secHead:hover {
+  background: color-mix(in oklab, var(--paper) 10%, transparent);
+}
+
+.secName {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--serif);
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.secMeta {
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper-3);
+  min-width: 18px;
+  text-align: center;
+}
+
+.chevron {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--paper-3);
+  transition: transform 0.15s ease;
+}
+
+.chevron[data-open='true'] {
+  transform: rotate(90deg);
+}
+
+.secBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--paper) 10%, transparent);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.itemCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: color-mix(in oklab, var(--paper) 5%, transparent);
+  border-left: 2px solid color-mix(in oklab, var(--accent) 60%, transparent);
+  border-radius: 0 6px 6px 0;
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-3);
+}
+
 /* ── Canvas ──────────────────────────────────────────── */
 .canvasWrap {
   flex: 1;

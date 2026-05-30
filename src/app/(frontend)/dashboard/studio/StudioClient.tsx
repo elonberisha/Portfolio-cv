@@ -2,8 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import StudioSidebar, { type SidebarInitial, type CanvasField } from './StudioSidebar'
+import StudioSidebar, { type SidebarInitial, type OutlineSection } from './StudioSidebar'
 import styles from './studio.module.css'
+
+// Patch a single field's value wherever it lives in the section tree.
+function patchField(sections: OutlineSection[], id: string, value: string): OutlineSection[] {
+  return sections.map((s) => ({
+    ...s,
+    fields: s.fields.map((f) => (f.id === id ? { ...f, value } : f)),
+    lists: s.lists.map((l) => ({
+      ...l,
+      items: l.items.map((it) => ({
+        ...it,
+        fields: it.fields.map((f) => (f.id === id ? { ...f, value } : f)),
+      })),
+    })),
+  }))
+}
 
 type Props = {
   initialHtml: string
@@ -28,7 +43,7 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
   const pendingImgId = useRef<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [hasHtml] = useState(Boolean(initialHtml.trim()))
-  const [fields, setFields] = useState<CanvasField[]>([])
+  const [sections, setSections] = useState<OutlineSection[]>([])
 
   const save = useCallback(async (html: string) => {
     setStatus('saving')
@@ -47,8 +62,16 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
 
   // Edit one of the template's own text nodes from the sidebar Details form.
   const setField = useCallback((id: string, value: string) => {
-    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, value } : f)))
+    setSections((prev) => patchField(prev, id, value))
     frameRef.current?.contentWindow?.postMessage({ type: 'editor:setField', id, value }, '*')
+  }, [])
+
+  // Add / remove a repeated card (e.g. an experience entry) from the sidebar.
+  const addItem = useCallback((listId: string) => {
+    frameRef.current?.contentWindow?.postMessage({ type: 'editor:addItem', listId }, '*')
+  }, [])
+  const removeItem = useCallback((itemId: string) => {
+    frameRef.current?.contentWindow?.postMessage({ type: 'editor:removeItem', itemId }, '*')
   }, [])
 
   // Upload a replacement image to Media, then deliver its URL to the iframe.
@@ -79,10 +102,10 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
       } else if (d.type === 'editor:requestImage') {
         pendingImgId.current = d.id
         fileRef.current?.click()
-      } else if (d.type === 'editor:outline' && Array.isArray(d.fields)) {
-        setFields(d.fields)
+      } else if (d.type === 'editor:outline' && Array.isArray(d.sections)) {
+        setSections(d.sections)
       } else if (d.type === 'editor:fieldInput' && d.id) {
-        setFields((prev) => prev.map((f) => (f.id === d.id ? { ...f, value: d.value } : f)))
+        setSections((prev) => patchField(prev, d.id, d.value))
       }
     }
     window.addEventListener('message', onMessage)
@@ -95,8 +118,10 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
         initial={details}
         status={status}
         templateName={templateName}
-        fields={fields}
+        sections={sections}
         onSetField={setField}
+        onAddItem={addItem}
+        onRemoveItem={removeItem}
       />
 
       <div className={styles.canvasWrap}>

@@ -5,11 +5,20 @@ import Link from 'next/link'
 
 import styles from './studio.module.css'
 
-export type CanvasField = {
+export type OutlineField = {
   id: string
   label: string
   value: string
   multiline?: boolean
+}
+export type OutlineItem = { id: string; fields: OutlineField[] }
+export type OutlineList = { id: string; itemLabel: string; items: OutlineItem[] }
+export type OutlineSection = {
+  id: string
+  type: string
+  label: string
+  fields: OutlineField[]
+  lists: OutlineList[]
 }
 
 export type SidebarInitial = {
@@ -20,17 +29,25 @@ type Props = {
   initial: SidebarInitial
   status: 'idle' | 'saving' | 'saved'
   templateName: string | null
-  // The template's own editable text nodes, streamed live from the canvas.
-  fields: CanvasField[]
-  // Edit one of those nodes from the sidebar.
+  // The template's structure, grouped into sections, streamed from the canvas.
+  sections: OutlineSection[]
   onSetField: (id: string, value: string) => void
+  onAddItem: (listId: string) => void
+  onRemoveItem: (itemId: string) => void
 }
 
 type Tab = 'details' | 'ops'
 
-export default function StudioSidebar({ initial, status, templateName, fields, onSetField }: Props) {
+export default function StudioSidebar({
+  initial, status, templateName, sections, onSetField, onAddItem, onRemoveItem,
+}: Props) {
   const [tab, setTab] = useState<Tab>('details')
+  const [open, setOpen] = useState<Record<string, boolean>>({})
   const [published, setPublished] = useState(initial.published)
+
+  const isOpen = (id: string, index: number) => open[id] ?? index === 0
+  const toggle = (id: string, index: number) =>
+    setOpen((o) => ({ ...o, [id]: !(o[id] ?? index === 0) }))
 
   async function togglePublish() {
     const next = !published
@@ -68,26 +85,64 @@ export default function StudioSidebar({ initial, status, templateName, fields, o
 
       <div className={styles.sideScroll}>
         {tab === 'details' && (
-          <div className={styles.detForm}>
-            {fields.length === 0 ? (
+          <div className={styles.sections}>
+            {sections.length === 0 ? (
               <p className={styles.opHint}>
-                Loading your template’s content… each heading and text block will appear here to edit.
+                Reading your template’s content… each part (header, experience, projects…) will
+                appear here to edit.
               </p>
             ) : (
-              fields.map((f, i) => (
-                <label className={styles.field} key={f.id}>
-                  <span>{f.label}{labelSuffix(fields, i)}</span>
-                  {f.multiline ? (
-                    <textarea
-                      rows={3}
-                      value={f.value}
-                      onChange={(e) => onSetField(f.id, e.target.value)}
-                    />
-                  ) : (
-                    <input value={f.value} onChange={(e) => onSetField(f.id, e.target.value)} />
-                  )}
-                </label>
-              ))
+              sections.map((sec, i) => {
+                const expanded = isOpen(sec.id, i)
+                const count = sec.fields.length + sec.lists.reduce((n, l) => n + l.items.length, 0)
+                return (
+                  <section className={styles.sec} key={sec.id}>
+                    <button
+                      type="button"
+                      className={styles.secHead}
+                      aria-expanded={expanded}
+                      onClick={() => toggle(sec.id, i)}
+                    >
+                      <span className={styles.secName}>{sec.label}</span>
+                      <span className={styles.secMeta}>{count}</span>
+                      <span className={styles.chevron} data-open={expanded}>›</span>
+                    </button>
+
+                    {expanded && (
+                      <div className={styles.secBody}>
+                        {sec.fields.map((f) => (
+                          <Field key={f.id} field={f} onChange={onSetField} />
+                        ))}
+
+                        {sec.lists.map((list) => (
+                          <div className={styles.list} key={list.id}>
+                            {list.items.map((item, idx) => (
+                              <div className={styles.itemCard} key={item.id}>
+                                <div className={styles.itemHead}>
+                                  <span>{capitalize(list.itemLabel)} {idx + 1}</span>
+                                  <button
+                                    type="button"
+                                    className={styles.removeWide}
+                                    onClick={() => onRemoveItem(item.id)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                                {item.fields.map((f) => (
+                                  <Field key={f.id} field={f} onChange={onSetField} />
+                                ))}
+                              </div>
+                            ))}
+                            <button type="button" className={styles.add} onClick={() => onAddItem(list.id)}>
+                              + Add {list.itemLabel}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )
+              })
             )}
           </div>
         )}
@@ -123,10 +178,19 @@ export default function StudioSidebar({ initial, status, templateName, fields, o
   )
 }
 
-// Number repeated labels (Heading 1, Heading 2…) so fields stay distinguishable.
-function labelSuffix(fields: CanvasField[], index: number) {
-  const label = fields[index].label
-  const sameBefore = fields.slice(0, index).filter((f) => f.label === label).length
-  const sameTotal = fields.filter((f) => f.label === label).length
-  return sameTotal > 1 ? ` ${sameBefore + 1}` : ''
+function Field({ field, onChange }: { field: OutlineField; onChange: (id: string, v: string) => void }) {
+  return (
+    <label className={styles.field}>
+      <span>{field.label}</span>
+      {field.multiline ? (
+        <textarea rows={3} value={field.value} onChange={(e) => onChange(field.id, e.target.value)} />
+      ) : (
+        <input value={field.value} onChange={(e) => onChange(field.id, e.target.value)} />
+      )}
+    </label>
+  )
+}
+
+function capitalize(s: string) {
+  return s ? s[0].toUpperCase() + s.slice(1) : s
 }

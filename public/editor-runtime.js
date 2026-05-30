@@ -13,10 +13,13 @@
  *   -> parent: { type: 'editor:change', html }      (debounced autosave)
  *   -> parent: { type: 'editor:ready' }
  *   -> parent: { type: 'editor:requestImage', id }  (ask for an upload)
- *   -> parent: { type: 'editor:outline', fields }   (the template's editable text)
+ *   -> parent: { type: 'editor:outline', sections } (template structure, grouped)
  *   -> parent: { type: 'editor:fieldInput', id, value } (canvas edit -> sidebar)
  *   <- parent: { type: 'editor:setImage', id, url } (deliver uploaded url)
- *   <- parent: { type: 'editor:setField', id, value } (sidebar edit -> canvas)
+ *   <- parent: { type: 'editor:setField', id, value } (sidebar edit -> canvas;
+ *               targets a text node OR a link/attr field, e.g. an <a> href)
+ *   <- parent: { type: 'editor:addItem', listId }    (add a card to a list)
+ *   <- parent: { type: 'editor:removeItem', itemId } (remove a card)
  *   <- parent: { type: 'editor:applyField', field, value }
  */
 (function () {
@@ -31,6 +34,7 @@
   var pendingImg = null
   var imgSeq = 0
   var fieldSeq = 0
+  var attrSeq = 0
 
   function isTextLeaf(el) {
     if (SKIP_TAGS[el.tagName]) return false
@@ -59,6 +63,12 @@
       clone.querySelectorAll('[contenteditable]').forEach(function (n) {
         n.removeAttribute('contenteditable')
       })
+      // Drop editor bookkeeping attributes so saved HTML stays clean.
+      clone.querySelectorAll('[data-ed-field],[data-ed-item],[data-ed-list],[data-ed-img],[data-ed-attr]').forEach(function (n) {
+        n.removeAttribute('data-ed-field'); n.removeAttribute('data-ed-item')
+        n.removeAttribute('data-ed-list'); n.removeAttribute('data-ed-img')
+        n.removeAttribute('data-ed-attr'); n.removeAttribute('data-ed-attrkey')
+      })
       clone.querySelectorAll('.ed-hover,.ed-selected').forEach(function (n) {
         n.classList.remove('ed-hover'); n.classList.remove('ed-selected')
       })
@@ -84,6 +94,7 @@
   function enableText() {
     var all = document.body.querySelectorAll('*')
     all.forEach(function (el) {
+      if (el.closest('[data-editor-ui]')) return
       if (isTextLeaf(el)) {
         if (el.getAttribute('contenteditable') !== 'true') {
           el.setAttribute('contenteditable', 'true')
@@ -94,14 +105,29 @@
           el.setAttribute('data-ed-field', 'f' + (++fieldSeq))
         }
       }
+      // Links carry a hidden href (social / project URLs) the canvas can't
+      // surface as plain text — expose it as a sidebar field. In-page anchors
+      // (href="#…") are navigation, not content, so skip them.
+      if (el.tagName === 'A') {
+        var href = el.getAttribute('href')
+        if (href && href.charAt(0) !== '#' && !el.hasAttribute('data-ed-attr')) {
+          el.setAttribute('data-ed-attr', 'a' + (++attrSeq))
+          el.setAttribute('data-ed-attrkey', 'href')
+        }
+      }
     })
   }
 
-  // ---- editable-text outline (drives the sidebar Details form) -------------
+  // ---- structural outline (drives the sidebar Details form) ----------------
+  // The template renders as a flat-ish sequence; we group it into named
+  // sections (Header / Experience / Projects …) by heading boundaries and
+  // landmark elements, and detect repeated sibling blocks as add/remove lists.
+  var LANDMARK = { SECTION: 1, HEADER: 1, FOOTER: 1, ARTICLE: 1, ASIDE: 1, NAV: 1, MAIN: 1 }
+
   function labelFor(el) {
     var t = el.tagName
     if (/^H[1-6]$/.test(t)) return 'Heading'
-    if (t === 'A') return 'Link text'
+    if (t === 'A') return 'Link'
     if (t === 'BUTTON') return 'Button'
     if (t === 'LI') return 'List item'
     if (t === 'BLOCKQUOTE') return 'Quote'
@@ -109,25 +135,223 @@
     return 'Text'
   }
 
-  function postOutline() {
-    var list = []
-    document.querySelectorAll('[data-ed-field]').forEach(function (el) {
-      if (el.closest('[data-editor-ui]')) return
-      var v = el.textContent.trim()
-      if (!v) return
-      list.push({
-        id: el.getAttribute('data-ed-field'),
-        label: labelFor(el),
-        value: el.textContent,
-        multiline: el.tagName === 'P' || el.tagName === 'BLOCKQUOTE' || v.length > 60,
+  // h2–h6 delimit sections; h1 is treated as a title inside the header.
+  function headingLevel(el) { var m = /^H([2-6])$/.exec(el.tagName); return m ? +m[1] : 0 }
+
+  function classifySection(text) {
+    var s = (text || '').toLowerCase()
+    if (/experience|work history|employment|career/.test(s)) return 'Experience'
+    if (/project|portfolio|selected work|case stud/.test(s)) return 'Projects'
+    if (/education|academic|study|degree|school|universit/.test(s)) return 'Education'
+    if (/about|summary|profile|\bbio\b|intro/.test(s)) return 'About'
+    if (/skill|stack|\btools\b|expertise|\btech\b/.test(s)) return 'Skills'
+    if (/language/.test(s)) return 'Languages'
+    if (/award|honou?r|achievement|recognition|certif/.test(s)) return 'Awards'
+    if (/contact|get in touch|reach me|\bemail\b/.test(s)) return 'Contact'
+    return null
+  }
+
+  function itemLabelFor(type) {
+    return {
+      Experience: 'experience', Projects: 'project', Education: 'education',
+      Skills: 'skill', Languages: 'language', Awards: 'award', Contact: 'contact',
+    }[type] || 'item'
+  }
+
+  function signature(el) {
+    return el.tagName + '.' + Array.prototype.slice.call(el.classList).sort().join('.')
+  }
+
+  // Descend through single-element wrappers to the real content container.
+  function findContentRoot() {
+    var node = document.body
+    while (true) {
+      var kids = Array.prototype.filter.call(node.children, function (c) {
+        return c.nodeType === 1 && !c.hasAttribute('data-editor-ui') &&
+          c.tagName !== 'STYLE' && c.tagName !== 'SCRIPT'
       })
+      if (kids.length === 1 && kids[0].children.length > 0) node = kids[0]
+      else return node
+    }
+  }
+
+  function textFieldObj(el) {
+    var v = el.textContent
+    return {
+      id: el.getAttribute('data-ed-field'),
+      label: labelFor(el),
+      value: v,
+      multiline: el.tagName === 'P' || el.tagName === 'BLOCKQUOTE' || v.trim().length > 60,
+    }
+  }
+
+  // Friendly label for a link's URL field, guessed from the host or its text.
+  function linkLabelFor(el) {
+    var h = (el.getAttribute('href') || '').toLowerCase()
+    var t = (el.textContent || '').trim().toLowerCase()
+    if (/^mailto:/.test(h) || /\bemail\b/.test(t)) return 'Email link'
+    if (/^tel:/.test(h) || /\bphone\b|\bcall\b/.test(t)) return 'Phone link'
+    if (/github\.com/.test(h) || /github/.test(t)) return 'GitHub URL'
+    if (/linkedin\.com/.test(h) || /linkedin/.test(t)) return 'LinkedIn URL'
+    if (/twitter\.com|x\.com/.test(h) || /twitter/.test(t)) return 'Twitter / X URL'
+    if (/instagram\.com/.test(h) || /instagram/.test(t)) return 'Instagram URL'
+    if (/dribbble\.com/.test(h) || /dribbble/.test(t)) return 'Dribbble URL'
+    if (/behance\.net/.test(h) || /behance/.test(t)) return 'Behance URL'
+    if (/youtube\.com|youtu\.be/.test(h) || /youtube/.test(t)) return 'YouTube URL'
+    if (/medium\.com/.test(h) || /medium/.test(t)) return 'Medium URL'
+    if (/\bdemo\b|\blive\b|\bwebsite\b|\bsite\b/.test(t)) return 'Live / demo URL'
+    return 'Link URL'
+  }
+
+  function attrFieldObj(el) {
+    var key = el.getAttribute('data-ed-attrkey') || 'href'
+    return {
+      id: el.getAttribute('data-ed-attr'),
+      label: linkLabelFor(el),
+      value: el.getAttribute(key) || '',
+      multiline: false,
+      kind: 'attr',
+    }
+  }
+
+  // Editable markers (text leaves + link URLs) inside el, in document order.
+  function markersIn(el) {
+    var out = []
+    el.querySelectorAll('[data-ed-field],[data-ed-attr]').forEach(function (n) {
+      if (!n.closest('[data-editor-ui]')) out.push(n)
     })
-    parent.postMessage({ type: 'editor:outline', fields: list }, '*')
+    return out
+  }
+
+  // One marker may carry a text field and/or a link-URL field.
+  function fieldsFor(el) {
+    var fs = []
+    if (el.hasAttribute('data-ed-field')) fs.push(textFieldObj(el))
+    if (el.hasAttribute('data-ed-attr')) fs.push(attrFieldObj(el))
+    return fs
+  }
+
+  function collectFields(el) {
+    var out = []
+    markersIn(el).forEach(function (n) {
+      fieldsFor(n).forEach(function (f) { out.push(f) })
+    })
+    return out
+  }
+
+  function buildSections() {
+    var root = findContentRoot()
+    var children = Array.prototype.filter.call(root.children, function (c) {
+      return c.nodeType === 1 && !c.hasAttribute('data-editor-ui') &&
+        c.tagName !== 'STYLE' && c.tagName !== 'SCRIPT'
+    })
+
+    // 1) Slice the flat child sequence into raw sections.
+    var raw = []
+    var cur = null
+    children.forEach(function (el) {
+      if (headingLevel(el)) {
+        cur = { headingEl: el, landmarkEl: null, nodes: [el] }
+        raw.push(cur)
+      } else if (LANDMARK[el.tagName]) {
+        raw.push({ headingEl: null, landmarkEl: el, nodes: [el] })
+        cur = null
+      } else {
+        if (!cur) { cur = { headingEl: null, landmarkEl: null, nodes: [] }; raw.push(cur) }
+        cur.nodes.push(el)
+      }
+    })
+    if (!raw.length) return []
+
+    // 2) Build each section's fields + repeatable lists.
+    var secSeq = 0, listSeq = 0, itemSeq = 0
+    var out = []
+    raw.forEach(function (sec, idx) {
+      secSeq++
+      var titleText = ''
+      if (sec.headingEl) titleText = sec.headingEl.textContent.trim()
+      else if (sec.landmarkEl) {
+        var h = sec.landmarkEl.querySelector('h1,h2,h3,h4,h5,h6')
+        if (h) titleText = h.textContent.trim()
+      }
+      var type = classifySection(titleText)
+      if (!type && sec.landmarkEl === null && sec.headingEl === null && idx === 0) type = 'Header'
+      if (!type && sec.landmarkEl && sec.landmarkEl.tagName === 'HEADER') type = 'Header'
+      if (!type && sec.landmarkEl && sec.landmarkEl.tagName === 'FOOTER') type = 'Contact'
+      var label = type || (titleText ? titleText.slice(0, 40) : 'Section ' + secSeq)
+
+      // Where repeated cards live: landmark's own children, else the
+      // non-heading nodes that follow the heading.
+      var scan
+      if (sec.landmarkEl) {
+        scan = Array.prototype.filter.call(sec.landmarkEl.children, function (c) {
+          return c.nodeType === 1 && !c.hasAttribute('data-editor-ui')
+        })
+      } else {
+        scan = sec.nodes.filter(function (n) { return !headingLevel(n) })
+      }
+
+      var fields = []
+      var lists = []
+
+      // The heading itself becomes the section's first editable field.
+      if (sec.headingEl && sec.headingEl.hasAttribute('data-ed-field')) {
+        var hf = textFieldObj(sec.headingEl); hf.label = 'Title'; fields.push(hf)
+      }
+
+      var i = 0
+      while (i < scan.length) {
+        var sig = signature(scan[i])
+        var members = [scan[i]]
+        var j = i + 1
+        while (j < scan.length && signature(scan[j]) === sig) { members.push(scan[j]); j++ }
+        var rich = members.filter(function (m) { return markersIn(m).length > 0 })
+        if (members.length >= 2 && rich.length >= 2) {
+          listSeq++
+          var listId = 'l' + listSeq
+          var items = []
+          members.forEach(function (m) {
+            itemSeq++
+            var itemId = 'i' + itemSeq
+            m.setAttribute('data-ed-item', itemId)
+            m.setAttribute('data-ed-list', listId)
+            items.push({ id: itemId, fields: collectFields(m) })
+          })
+          lists.push({ id: listId, itemLabel: itemLabelFor(type), items: items })
+        } else {
+          for (var k = 0; k < members.length; k++) {
+            collectFields(members[k]).forEach(function (f) { fields.push(f) })
+          }
+        }
+        i = j
+      }
+
+      if (!fields.length && !lists.length) return
+      out.push({ id: 's' + secSeq, type: type || '', label: label, fields: fields, lists: lists })
+    })
+    return out
+  }
+
+  function postOutline() {
+    parent.postMessage({ type: 'editor:outline', sections: buildSections() }, '*')
   }
 
   function scheduleOutline() {
     if (outlineTimer) clearTimeout(outlineTimer)
     outlineTimer = setTimeout(postOutline, 200)
+  }
+
+  function stripEdIds(node) {
+    node.removeAttribute('data-ed-field')
+    node.removeAttribute('data-ed-item')
+    node.removeAttribute('data-ed-list')
+    node.removeAttribute('data-ed-attr')
+    node.removeAttribute('data-ed-attrkey')
+    node.querySelectorAll('[data-ed-field],[data-ed-item],[data-ed-list],[data-ed-attr]').forEach(function (n) {
+      n.removeAttribute('data-ed-field'); n.removeAttribute('data-ed-item')
+      n.removeAttribute('data-ed-list'); n.removeAttribute('data-ed-attr')
+      n.removeAttribute('data-ed-attrkey')
+    })
   }
 
   // ---- block toolbar -------------------------------------------------------
@@ -160,11 +384,7 @@
           if (!current) return
           if (action === 'dup') {
             var copy = current.cloneNode(true)
-            // Fresh field ids for the duplicated subtree.
-            copy.removeAttribute('data-ed-field')
-            copy.querySelectorAll('[data-ed-field]').forEach(function (n) {
-              n.removeAttribute('data-ed-field')
-            })
+            stripEdIds(copy) // fresh ids for the duplicated subtree
             current.parentNode.insertBefore(copy, current.nextSibling)
             enableText()
           } else if (action === 'del') {
@@ -283,6 +503,27 @@
     if (d.type === 'editor:setField') {
       var node = document.querySelector('[data-ed-field="' + d.id + '"]')
       if (node) { node.textContent = d.value; scheduleSave() }
+      else {
+        var link = document.querySelector('[data-ed-attr="' + d.id + '"]')
+        if (link) {
+          link.setAttribute(link.getAttribute('data-ed-attrkey') || 'href', d.value)
+          scheduleSave()
+        }
+      }
+    }
+    if (d.type === 'editor:addItem' && d.listId) {
+      var members = document.querySelectorAll('[data-ed-list="' + d.listId + '"]')
+      if (members.length) {
+        var last = members[members.length - 1]
+        var copy = last.cloneNode(true)
+        stripEdIds(copy)
+        last.parentNode.insertBefore(copy, last.nextSibling)
+        enableText(); scheduleSave(); scheduleOutline()
+      }
+    }
+    if (d.type === 'editor:removeItem' && d.itemId) {
+      var item = document.querySelector('[data-ed-item="' + d.itemId + '"]')
+      if (item) { item.remove(); scheduleSave(); scheduleOutline() }
     }
   })
 
