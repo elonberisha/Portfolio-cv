@@ -38,19 +38,18 @@ type Props = {
   onMoveItem: (itemId: string, dir: 'up' | 'down') => void
 }
 
-type Tab = 'details' | 'ops'
-
 export default function StudioSidebar({
   initial, status, templateName, sections, onSetField, onAddItem, onRemoveItem,
   onRemoveField, onMoveItem,
 }: Props) {
-  const [tab, setTab] = useState<Tab>('details')
+  // Sections start open so the student sees their content right away; they can
+  // still collapse any one to focus.
   const [open, setOpen] = useState<Record<string, boolean>>({})
   const [published, setPublished] = useState(initial.published)
+  const [showTip, setShowTip] = useState(true)
 
-  const isOpen = (id: string, index: number) => open[id] ?? index === 0
-  const toggle = (id: string, index: number) =>
-    setOpen((o) => ({ ...o, [id]: !(o[id] ?? index === 0) }))
+  const isOpen = (id: string) => open[id] ?? true
+  const toggle = (id: string) => setOpen((o) => ({ ...o, [id]: !(o[id] ?? true) }))
 
   async function togglePublish() {
     const next = !published
@@ -67,135 +66,121 @@ export default function StudioSidebar({
     }
   }
 
+  const statusText = status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved' : 'Auto-saves'
+
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sideTop}>
         <span className={styles.kicker}>Studio</span>
         <b className={styles.sideTitle}>{templateName || 'Your template'}</b>
-        <span className={styles.status} data-state={status}>
-          {status === 'saving' ? 'Saving…' : status === 'saved' ? 'All changes saved' : 'Auto-saves as you edit'}
-        </span>
-      </div>
-
-      <div className={styles.tabs}>
-        <button type="button" className={tab === 'details' ? styles.tabActive : styles.tab} onClick={() => setTab('details')}>
-          Details
-        </button>
-        <button type="button" className={tab === 'ops' ? styles.tabActive : styles.tab} onClick={() => setTab('ops')}>
-          Operations
-        </button>
       </div>
 
       <div className={styles.sideScroll}>
-        {tab === 'details' && (
-          <div className={styles.sections}>
-            {sections.length === 0 ? (
-              <p className={styles.opHint}>
-                Reading your template’s content… each part (header, experience, projects…) will
-                appear here to edit.
-              </p>
-            ) : (
-              sections.map((sec, i) => {
-                const expanded = isOpen(sec.id, i)
-                const count = sec.fields.length + sec.lists.reduce((n, l) => n + l.items.length, 0)
-                return (
-                  <section className={styles.sec} key={sec.id}>
-                    <button
-                      type="button"
-                      className={styles.secHead}
-                      aria-expanded={expanded}
-                      onClick={() => toggle(sec.id, i)}
-                    >
-                      <span className={styles.secName}>{sec.label}</span>
-                      <span className={styles.secMeta}>{count}</span>
-                      <span className={styles.chevron} data-open={expanded}>›</span>
-                    </button>
+        {showTip && (
+          <div className={styles.tip}>
+            <span>Click any text on the page to edit it. Hover a block to reorder, duplicate or delete.</span>
+            <button type="button" onClick={() => setShowTip(false)} aria-label="Dismiss tip">×</button>
+          </div>
+        )}
 
-                    {expanded && (
-                      <div className={styles.secBody}>
-                        {sec.fields.map((f) => (
-                          <Field key={f.id} field={f} onChange={onSetField} onRemove={onRemoveField} />
-                        ))}
+        <div className={styles.sections}>
+          {sections.length === 0 ? (
+            <p className={styles.opHint}>
+              Reading your template’s content… each part (header, experience, projects…) will
+              appear here to edit.
+            </p>
+          ) : (
+            sections.map((sec) => {
+              const expanded = isOpen(sec.id)
+              const count = sec.fields.length + sec.lists.reduce((n, l) => n + l.items.length, 0)
+              return (
+                <section className={styles.sec} key={sec.id}>
+                  <button
+                    type="button"
+                    className={styles.secHead}
+                    aria-expanded={expanded}
+                    onClick={() => toggle(sec.id)}
+                  >
+                    <span className={styles.chevron} data-open={expanded}>›</span>
+                    <span className={styles.secName}>{sec.label}</span>
+                    <span className={styles.secMeta}>{count}</span>
+                  </button>
 
-                        {sec.lists.map((list) => (
-                          <div className={styles.list} key={list.id}>
-                            {list.items.map((item, idx) => (
-                              <div className={styles.itemCard} key={item.id}>
-                                <div className={styles.itemHead}>
-                                  <span>{capitalize(list.itemLabel)} {idx + 1}</span>
-                                  <span className={styles.itemTools}>
-                                    <button
-                                      type="button"
-                                      className={styles.iconBtn}
-                                      title="Move up"
-                                      onClick={() => onMoveItem(item.id, 'up')}
-                                      disabled={idx === 0}
-                                    >
-                                      ↑
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={styles.iconBtn}
-                                      title="Move down"
-                                      onClick={() => onMoveItem(item.id, 'down')}
-                                      disabled={idx === list.items.length - 1}
-                                    >
-                                      ↓
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={styles.removeWide}
-                                      onClick={() => onRemoveItem(item.id)}
-                                    >
-                                      Remove
-                                    </button>
-                                  </span>
-                                </div>
-                                {item.fields.map((f) => (
-                                  <Field key={f.id} field={f} onChange={onSetField} onRemove={onRemoveField} />
-                                ))}
+                  {expanded && (
+                    <div className={styles.secBody}>
+                      {sec.fields.map((f) => (
+                        <Field key={f.id} field={f} onChange={onSetField} onRemove={onRemoveField} />
+                      ))}
+
+                      {sec.lists.map((list) => (
+                        <div className={styles.list} key={list.id}>
+                          {list.items.map((item, idx) => (
+                            <div className={styles.itemCard} key={item.id}>
+                              <div className={styles.itemHead}>
+                                <span>{capitalize(list.itemLabel)} {idx + 1}</span>
+                                <span className={styles.itemTools}>
+                                  <button
+                                    type="button"
+                                    className={styles.iconBtn}
+                                    title="Move up"
+                                    onClick={() => onMoveItem(item.id, 'up')}
+                                    disabled={idx === 0}
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.iconBtn}
+                                    title="Move down"
+                                    onClick={() => onMoveItem(item.id, 'down')}
+                                    disabled={idx === list.items.length - 1}
+                                  >
+                                    ↓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.removeWide}
+                                    onClick={() => onRemoveItem(item.id)}
+                                  >
+                                    Remove
+                                  </button>
+                                </span>
                               </div>
-                            ))}
-                            <button type="button" className={styles.add} onClick={() => onAddItem(list.id)}>
-                              + Add {list.itemLabel}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                )
-              })
-            )}
-          </div>
-        )}
+                              {item.fields.map((f) => (
+                                <Field key={f.id} field={f} onChange={onSetField} onRemove={onRemoveField} />
+                              ))}
+                            </div>
+                          ))}
+                          <button type="button" className={styles.add} onClick={() => onAddItem(list.id)}>
+                            + Add {list.itemLabel}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )
+            })
+          )}
+        </div>
+      </div>
 
-        {tab === 'ops' && (
-          <div className={styles.ops}>
-            <div className={styles.opGroup}>
-              <span className={styles.opLabel}>Edit on page</span>
-              <p className={styles.opHint}>
-                Click any text to edit it. Hover a block for the toolbar: drag to reorder,
-                duplicate, delete, or hide. Click an image to replace it.
-              </p>
-            </div>
-
-            <div className={styles.opGroup}>
-              <span className={styles.opLabel}>Publish</span>
-              <label className={styles.toggle}>
-                <input type="checkbox" checked={published} onChange={togglePublish} />
-                <span>{published ? 'Live at your subdomain' : 'Draft (not visible)'}</span>
-              </label>
-            </div>
-
-            <div className={styles.opGroup}>
-              <span className={styles.opLabel}>Quick links</span>
-              <Link href="/dashboard/cv" className={styles.opLink}>Next: build your CV {'->'}</Link>
-              <Link href="/templates" className={styles.opLink}>Change template</Link>
-              <Link href="/dashboard" className={styles.opLink}>Back to dashboard</Link>
-            </div>
-          </div>
-        )}
+      <div className={styles.sideFoot}>
+        <div className={styles.footRow}>
+          <label className={styles.pub}>
+            <input type="checkbox" checked={published} onChange={togglePublish} />
+            <span className={styles.pubText}>
+              <b data-live={published}>{published ? 'Live' : 'Draft'}</b>
+              <small>{published ? 'Visible at your subdomain' : 'Only you can see it'}</small>
+            </span>
+          </label>
+          <span className={styles.status} data-state={status}>{statusText}</span>
+        </div>
+        <nav className={styles.footLinks}>
+          <Link href="/dashboard/cv">Build CV {'->'}</Link>
+          <Link href="/templates">Change template</Link>
+          <Link href="/dashboard">Dashboard</Link>
+        </nav>
       </div>
     </aside>
   )
