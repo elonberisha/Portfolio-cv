@@ -109,7 +109,7 @@ export default function TemplateChooser({ activeSlugs }: { activeSlugs?: string[
         return
       }
 
-      router.push(`/dashboard?template=${slug}`)
+      router.push(data.redirect || `/dashboard?template=${slug}`)
       router.refresh()
     } catch {
       setMessage('Could not select this template. Please try again.')

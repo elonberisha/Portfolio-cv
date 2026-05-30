@@ -88,7 +88,7 @@ export default function SignUpPage() {
       })
 
       if (loginRes.ok) {
-        router.push('/dashboard')
+        router.push('/templates?onboarding=1')
         router.refresh()
       } else {
         // Account created but auto-login failed, redirect to signin

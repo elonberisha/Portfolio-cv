@@ -150,6 +150,15 @@ export const Users: CollectionConfig = {
         description: 'User agreed to Terms of Service and Privacy Policy',
       },
     },
+    {
+      name: 'onboardingComplete',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: 'Finished the post-signup setup (template + portfolio + CV)',
+      },
+    },
   ],
   timestamps: true,
 }

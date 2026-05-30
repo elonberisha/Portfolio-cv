@@ -54,6 +54,24 @@ export const Portfolios: CollectionConfig = {
         description: 'Make portfolio visible at subdomain',
       },
     },
+    {
+      // The editable page document — a sanitized HTML snapshot of the chosen
+      // template that the generic studio editor mutates. Single source of
+      // truth for the student's live page.
+      name: 'pageHtml',
+      type: 'textarea',
+      admin: {
+        description: 'Editable HTML snapshot of the chosen template (managed by the studio editor)',
+      },
+    },
+    {
+      name: 'templateSnapshotAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        description: 'When the template HTML was last snapshotted',
+      },
+    },
 
     // ═══════════════════════════════════════════════
     // COMMON FIELDS (all faculty groups)

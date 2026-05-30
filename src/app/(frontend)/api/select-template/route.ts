@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
 import { getTemplateBySlug, TEMPLATE_CATALOG } from '@/lib/templateCatalog'
+import { snapshotTemplateHtml } from '@/lib/templateSnapshot'
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -54,11 +55,18 @@ export async function POST(request: Request) {
 
   const portfolio = existingPortfolios.docs[0]
 
+  // Snapshot the chosen template's rendered HTML so the studio can edit it.
+  // Fails soft (empty string) if headless rendering isn't available.
+  const pageHtml = await snapshotTemplateHtml(templateConfig.slug)
+  const snapshotData = pageHtml
+    ? { pageHtml, templateSnapshotAt: new Date().toISOString() }
+    : {}
+
   if (portfolio) {
     await payload.update({
       collection: 'portfolios',
       id: portfolio.id,
-      data: { template: template.id },
+      data: { template: template.id, ...snapshotData },
       overrideAccess: true,
     })
   } else {
@@ -68,6 +76,7 @@ export async function POST(request: Request) {
         owner: user.id,
         template: template.id,
         published: false,
+        ...snapshotData,
       },
       overrideAccess: true,
     })
@@ -75,6 +84,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
+    redirect: '/dashboard/studio',
     template: {
       id: template.id,
       slug: templateConfig.slug,

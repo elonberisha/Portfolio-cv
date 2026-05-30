@@ -12,6 +12,7 @@ import { UniversityRequests } from './collections/UniversityRequests'
 import { Portfolios } from './collections/Portfolios'
 import { Templates } from './collections/Templates'
 import { Media } from './collections/Media'
+import { CVs } from './collections/CVs'
 import { seedDatabase } from './seed'
 
 const filename = fileURLToPath(import.meta.url)
@@ -53,6 +54,7 @@ export default buildConfig({
     Portfolios,
     Templates,
     Media,
+    CVs,
   ],
 
   editor: lexicalEditor(),
