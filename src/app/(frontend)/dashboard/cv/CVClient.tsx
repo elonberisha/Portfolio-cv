@@ -4,6 +4,8 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+import AiImprove from '@/components/AiImprove'
+
 import styles from './cv.module.css'
 
 type PersonalInfo = {
@@ -212,7 +214,10 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
                 <Field label="Nationality" value={pi.nationality} onChange={(v) => setPI('nationality', v)} />
               </div>
               <label className={styles.field}>
-                <span>About / summary</span>
+                <span>
+                  About / summary
+                  <AiImprove value={pi.about || ''} onAccept={(v) => setPI('about', v)} />
+                </span>
                 <textarea rows={4} value={pi.about || ''} onChange={(e) => setPI('about', e.target.value)} />
               </label>
             </section>
@@ -229,7 +234,10 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
                       <Field label="End" value={w.endDate} onChange={(v) => setList('workExperience', i, 'endDate', v)} />
                     </div>
                     <label className={styles.field}>
-                      <span>Description</span>
+                      <span>
+                        Description
+                        <AiImprove value={w.description || ''} onAccept={(v) => setList('workExperience', i, 'description', v)} />
+                      </span>
                       <textarea rows={2} value={w.description || ''} onChange={(e) => setList('workExperience', i, 'description', e.target.value)} />
                     </label>
                   </div>
@@ -276,7 +284,10 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
               <div className={styles.blockHead}><span className={styles.num}>05</span><h2>Skills</h2></div>
               <Field label="Digital skills (comma-separated)" value={data.digitalSkills} onChange={(v) => setData((d) => ({ ...d, digitalSkills: v }))} />
               <label className={styles.field}>
-                <span>Other skills</span>
+                <span>
+                  Other skills
+                  <AiImprove value={data.otherSkills || ''} onAccept={(v) => setData((d) => ({ ...d, otherSkills: v }))} />
+                </span>
                 <textarea rows={3} value={data.otherSkills || ''} onChange={(e) => setData((d) => ({ ...d, otherSkills: e.target.value }))} />
               </label>
             </section>

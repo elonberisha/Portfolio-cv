@@ -242,6 +242,14 @@
   color: var(--paper-3);
 }
 
+/* Right-side controls in a field label row (AI improve + delete) */
+.fieldTools {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Delete a single field (CRUD) — hidden until the row is hovered/focused */
 .fieldDel {
   flex-shrink: 0;

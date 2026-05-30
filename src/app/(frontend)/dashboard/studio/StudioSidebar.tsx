@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+import AiImprove from '@/components/AiImprove'
+
 import styles from './studio.module.css'
 
 export type OutlineField = {
@@ -197,16 +199,21 @@ function Field({
     <label className={styles.field}>
       <span>
         {field.label}
-        {onRemove && (
-          <button
-            type="button"
-            className={styles.fieldDel}
-            title="Delete this field"
-            onClick={(e) => { e.preventDefault(); onRemove(field.id) }}
-          >
-            ×
-          </button>
-        )}
+        <span className={styles.fieldTools}>
+          {field.multiline && (
+            <AiImprove value={field.value} onAccept={(v) => onChange(field.id, v)} />
+          )}
+          {onRemove && (
+            <button
+              type="button"
+              className={styles.fieldDel}
+              title="Delete this field"
+              onClick={(e) => { e.preventDefault(); onRemove(field.id) }}
+            >
+              ×
+            </button>
+          )}
+        </span>
       </span>
       {field.multiline ? (
         <textarea rows={3} value={field.value} onChange={(e) => onChange(field.id, e.target.value)} />

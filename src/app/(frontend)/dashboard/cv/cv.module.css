@@ -161,6 +161,10 @@
 }
 
 .field > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-family: var(--mono);
   font-size: 10px;
   letter-spacing: 0.14em;
