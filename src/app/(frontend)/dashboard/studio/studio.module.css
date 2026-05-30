@@ -8,13 +8,37 @@
 
 /* ── Sidebar ─────────────────────────────────────────── */
 .sidebar {
-  width: 320px;
+  width: var(--sidebar-w, 340px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background: var(--ink);
   color: var(--paper);
   border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Drag handle between sidebar and canvas */
+.resizer {
+  flex: 0 0 6px;
+  align-self: stretch;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  z-index: 5;
+  touch-action: none;
+}
+
+.resizer::before {
+  content: '';
+  position: absolute;
+  inset: 0 2px;
+  background: color-mix(in oklab, var(--ink) 35%, var(--paper));
+  transition: background 0.12s ease;
+}
+
+.resizer:hover::before,
+.resizer:active::before {
+  background: var(--accent);
 }
 
 .sideTop {
@@ -453,6 +477,9 @@
   .sidebar {
     width: 100%;
     max-height: 50vh;
+  }
+  .resizer {
+    display: none;
   }
   .canvasWrap {
     min-height: 60vh;

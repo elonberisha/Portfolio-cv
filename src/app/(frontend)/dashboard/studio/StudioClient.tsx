@@ -45,6 +45,42 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
   const [hasHtml] = useState(Boolean(initialHtml.trim()))
   const [sections, setSections] = useState<OutlineSection[]>([])
 
+  // Resizable sidebar: width driven by a CSS var on the container, dragged via
+  // the splitter handle and remembered across reloads.
+  const studioRef = useRef<HTMLDivElement>(null)
+  const widthRef = useRef(340)
+  const [sidebarWidth, setSidebarWidth] = useState(340)
+  const [dragging, setDragging] = useState(false)
+
+  useEffect(() => {
+    const saved = Number(localStorage.getItem('studioSidebarW'))
+    if (saved >= 260 && saved <= 1000) { widthRef.current = saved; setSidebarWidth(saved) }
+  }, [])
+
+  const startResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    setDragging(true)
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    const onMove = (ev: PointerEvent) => {
+      const left = studioRef.current?.getBoundingClientRect().left ?? 0
+      const max = Math.min(760, Math.round(window.innerWidth * 0.7))
+      const w = Math.max(260, Math.min(max, ev.clientX - left))
+      widthRef.current = w
+      setSidebarWidth(w)
+    }
+    const onUp = () => {
+      setDragging(false)
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+      try { localStorage.setItem('studioSidebarW', String(widthRef.current)) } catch { /* ignore */ }
+    }
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }, [])
+
   const save = useCallback(async (html: string) => {
     setStatus('saving')
     try {
@@ -113,7 +149,11 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
   }, [save])
 
   return (
-    <div className={styles.studio}>
+    <div
+      className={styles.studio}
+      ref={studioRef}
+      style={{ '--sidebar-w': `${sidebarWidth}px` } as React.CSSProperties}
+    >
       <StudioSidebar
         initial={details}
         status={status}
@@ -124,7 +164,15 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
         onRemoveItem={removeItem}
       />
 
-      <div className={styles.canvasWrap}>
+      <div
+        className={styles.resizer}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Drag to resize the editor sidebar"
+        onPointerDown={startResize}
+      />
+
+      <div className={styles.canvasWrap} style={dragging ? { pointerEvents: 'none' } : undefined}>
         {hasHtml ? (
           <iframe
             ref={frameRef}
