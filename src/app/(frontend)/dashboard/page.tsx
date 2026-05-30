@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 import LogoutButton from '@/components/LogoutButton'
 import { getCurrentUser } from '@/lib/auth'
-import { getMyPortfolio } from '@/lib/portfolio'
+import { getMyCV, getMyPortfolio } from '@/lib/portfolio'
 
 import styles from './page.module.css'
 
@@ -18,85 +18,26 @@ const FACULTY_LABELS: Record<string, string> = {
   agriculture: 'Agriculture & Environment',
 }
 
-type DashboardProps = {
-  searchParams?: Promise<{ subdomain?: string }>
-}
-
-function cleanSubdomain(value: unknown) {
-  if (typeof value !== 'string') return ''
-  return value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 24)
-}
-
-export default async function DashboardPage({ searchParams }: DashboardProps) {
+export default async function DashboardPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/signin')
 
-  const params = searchParams ? await searchParams : {}
-  const requestedSubdomain = cleanSubdomain(params.subdomain)
-  const subdomain = user.subdomain || requestedSubdomain || 'your-name'
-  const displayName = user.firstName || 'student'
+  const [portfolio, cv] = await Promise.all([getMyPortfolio(user.id), getMyCV(user.id)])
+
+  // No template picked yet → resume onboarding.
+  if (!portfolio || !portfolio.template) redirect('/templates?onboarding=1')
+
+  const template = portfolio.template
+  const templateName = template && typeof template === 'object' ? (template as any).name : null
+  const templateSlug = template && typeof template === 'object' ? (template as any).slug : null
+  const subdomain = user.subdomain || 'your-name'
   const fullName = user.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
     : user.email
 
-  const portfolio = await getMyPortfolio(user.id)
-
-  // Resolve real completion state for each setup step.
-  const template = portfolio?.template
-  const templateName = template && typeof template === 'object' ? (template as any).name : null
-  const hasFaculty = Boolean(user.facultyGroup)
-  const hasTemplate = Boolean(template)
-  const hasDetails = Boolean(
-    portfolio &&
-      (portfolio.bio ||
-        portfolio.headline ||
-        (portfolio.education && portfolio.education.length) ||
-        (portfolio.projects && portfolio.projects.length) ||
-        (portfolio.skills && portfolio.skills.length)),
-  )
-  const isPublished = Boolean(portfolio?.published)
-
-  const steps = [
-    {
-      number: '01',
-      title: 'Choose your faculty group',
-      text: 'This decides which portfolio sections fit your field — projects for tech, rotations for medical, and more.',
-      done: hasFaculty,
-      value: hasFaculty ? FACULTY_LABELS[user.facultyGroup] : null,
-      href: '/dashboard/edit',
-      cta: 'Set field',
-    },
-    {
-      number: '02',
-      title: 'Pick a template',
-      text: 'Start from a design that fits your field. You can switch templates anytime without losing your data.',
-      done: hasTemplate,
-      value: templateName,
-      href: '/templates',
-      cta: hasTemplate ? 'Change template' : 'Browse templates',
-    },
-    {
-      number: '03',
-      title: 'Fill in your details',
-      text: 'Add your bio, education, links, skills, and projects. This is the content that fills your template.',
-      done: hasDetails,
-      value: hasDetails ? 'Details added' : null,
-      href: '/dashboard/edit',
-      cta: hasDetails ? 'Edit details' : 'Add details',
-    },
-    {
-      number: '04',
-      title: 'Publish your subdomain',
-      text: 'Push your page live at your portfolio-cv.online subdomain. Publishing tools arrive with the public builder.',
-      done: isPublished,
-      value: isPublished ? 'Live' : null,
-      href: null,
-      cta: 'Coming soon',
-    },
-  ]
-
-  const completed = steps.filter((s) => s.done).length
-  const pct = Math.round((completed / steps.length) * 100)
+  const cvSource = (cv?.source as 'builder' | 'upload') || null
+  const cvFileUrl = cv?.file && typeof cv.file === 'object' ? (cv.file as any).url : null
+  const isPublished = Boolean(portfolio.published)
 
   return (
     <main className={styles.dashboard}>
@@ -104,11 +45,11 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         <div>
           <p className={styles.kicker}>Student workspace</p>
           <h1>
-            Build your portfolio, then export your <em>Europass-standard CV</em>.
+            Your portfolio &amp; <em>Europass CV</em>.
           </h1>
           <p className={styles.lede}>
-            Hi {displayName}. Work through the steps below to set up your public
-            student profile: faculty group, template, and your details.
+            Welcome back, {user.firstName || 'student'}. Manage your live page and your CV
+            from here.
           </p>
         </div>
 
@@ -128,11 +69,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             </div>
             <div>
               <dt>Faculty</dt>
-              <dd>{hasFaculty ? FACULTY_LABELS[user.facultyGroup] : 'Not set'}</dd>
-            </div>
-            <div>
-              <dt>Template</dt>
-              <dd>{templateName || 'Not chosen'}</dd>
+              <dd>{user.facultyGroup ? FACULTY_LABELS[user.facultyGroup] : 'Not set'}</dd>
             </div>
           </dl>
           {user.role === 'admin' && (
@@ -143,54 +80,79 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         </aside>
       </section>
 
-      <section className={styles.progress}>
-        <div className={styles.progressHead}>
-          <span>Setup progress</span>
-          <b>
-            {completed} / {steps.length} done · {pct}%
-          </b>
-        </div>
-        <div className={styles.progressTrack}>
-          <i style={{ width: `${pct}%` }} />
-        </div>
-      </section>
-
-      <section className={styles.setupGrid}>
-        {steps.map((step) => (
-          <article key={step.number} className={`${styles.stepCard} ${step.done ? styles.stepDone : ''}`}>
-            <div className={styles.stepMeta}>
-              <span>{step.number}</span>
-              <b>{step.done ? '✓ Done' : 'To do'}</b>
-            </div>
-            <h2>{step.title}</h2>
-            <p>{step.text}</p>
-            {step.value && <div className={styles.stepValue}>{step.value}</div>}
-            {step.href ? (
-              <Link href={step.href} className={styles.stepCta}>
-                {step.cta} {'->'}
-              </Link>
+      <section className={styles.columns}>
+        {/* Portfolio column */}
+        <article className={styles.col}>
+          <div className={styles.colHead}>
+            <span className={styles.num}>Portfolio</span>
+            <b className={isPublished ? styles.live : styles.draft}>
+              {isPublished ? '● Live' : '○ Draft'}
+            </b>
+          </div>
+          <div className={styles.thumb}>
+            {templateSlug ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={`/template-thumbs/${templateSlug}.webp`} alt={`${templateName} preview`} />
             ) : (
-              <span className={styles.stepCtaMuted}>{step.cta}</span>
+              <div className={styles.thumbEmpty}>No template</div>
             )}
-          </article>
-        ))}
-      </section>
+          </div>
+          <div className={styles.colBody}>
+            <h2>{templateName || 'Your template'}</h2>
+            <p>Edit your page in the studio — text, cards, images, layout.</p>
+            <div className={styles.colActions}>
+              <Link href="/dashboard/studio" className={styles.primary}>
+                Edit in studio {'->'}
+              </Link>
+              <Link href="/templates" className={styles.secondary}>
+                Change template
+              </Link>
+            </div>
+          </div>
+        </article>
 
-      <section className={styles.cta}>
-        <div>
-          <p className={styles.kicker}>Next step</p>
-          <h2>
-            {hasTemplate ? 'Keep filling in your portfolio details.' : 'Pick a template to get started.'}
-          </h2>
-        </div>
-        <div className={styles.ctaActions}>
-          <Link href="/templates" className={styles.primary}>
-            {hasTemplate ? 'Change template' : 'Choose template'} {'->'}
-          </Link>
-          <Link href="/dashboard/edit" className={styles.secondary}>
-            Edit details
-          </Link>
-        </div>
+        {/* CV column */}
+        <article className={styles.col}>
+          <div className={styles.colHead}>
+            <span className={styles.num}>CV</span>
+            <b className={cvSource ? styles.live : styles.draft}>
+              {cvSource === 'builder' ? '● Europass' : cvSource === 'upload' ? '● Uploaded' : '○ None'}
+            </b>
+          </div>
+          <div className={styles.cvBox}>
+            {cvSource === 'upload' ? (
+              <p>You uploaded a PDF CV. Uploaded CVs can be replaced or deleted.</p>
+            ) : cvSource === 'builder' ? (
+              <p>You built a Europass CV. Edit it anytime.</p>
+            ) : (
+              <p>No CV yet. Build a Europass CV or upload a PDF.</p>
+            )}
+          </div>
+          <div className={styles.colBody}>
+            <div className={styles.colActions}>
+              {cvSource === 'upload' ? (
+                <>
+                  {cvFileUrl && (
+                    <a href={cvFileUrl} target="_blank" rel="noreferrer" className={styles.primary}>
+                      View PDF {'->'}
+                    </a>
+                  )}
+                  <Link href="/dashboard/cv" className={styles.secondary}>
+                    Replace / delete
+                  </Link>
+                </>
+              ) : cvSource === 'builder' ? (
+                <Link href="/dashboard/cv" className={styles.primary}>
+                  Edit CV {'->'}
+                </Link>
+              ) : (
+                <Link href="/dashboard/cv" className={styles.primary}>
+                  Create CV {'->'}
+                </Link>
+              )}
+            </div>
+          </div>
+        </article>
       </section>
     </main>
   )
