@@ -34,12 +34,15 @@ type Props = {
   onSetField: (id: string, value: string) => void
   onAddItem: (listId: string) => void
   onRemoveItem: (itemId: string) => void
+  onRemoveField: (id: string) => void
+  onMoveItem: (itemId: string, dir: 'up' | 'down') => void
 }
 
 type Tab = 'details' | 'ops'
 
 export default function StudioSidebar({
   initial, status, templateName, sections, onSetField, onAddItem, onRemoveItem,
+  onRemoveField, onMoveItem,
 }: Props) {
   const [tab, setTab] = useState<Tab>('details')
   const [open, setOpen] = useState<Record<string, boolean>>({})
@@ -111,7 +114,7 @@ export default function StudioSidebar({
                     {expanded && (
                       <div className={styles.secBody}>
                         {sec.fields.map((f) => (
-                          <Field key={f.id} field={f} onChange={onSetField} />
+                          <Field key={f.id} field={f} onChange={onSetField} onRemove={onRemoveField} />
                         ))}
 
                         {sec.lists.map((list) => (
@@ -120,16 +123,36 @@ export default function StudioSidebar({
                               <div className={styles.itemCard} key={item.id}>
                                 <div className={styles.itemHead}>
                                   <span>{capitalize(list.itemLabel)} {idx + 1}</span>
-                                  <button
-                                    type="button"
-                                    className={styles.removeWide}
-                                    onClick={() => onRemoveItem(item.id)}
-                                  >
-                                    Remove
-                                  </button>
+                                  <span className={styles.itemTools}>
+                                    <button
+                                      type="button"
+                                      className={styles.iconBtn}
+                                      title="Move up"
+                                      onClick={() => onMoveItem(item.id, 'up')}
+                                      disabled={idx === 0}
+                                    >
+                                      ↑
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={styles.iconBtn}
+                                      title="Move down"
+                                      onClick={() => onMoveItem(item.id, 'down')}
+                                      disabled={idx === list.items.length - 1}
+                                    >
+                                      ↓
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={styles.removeWide}
+                                      onClick={() => onRemoveItem(item.id)}
+                                    >
+                                      Remove
+                                    </button>
+                                  </span>
                                 </div>
                                 {item.fields.map((f) => (
-                                  <Field key={f.id} field={f} onChange={onSetField} />
+                                  <Field key={f.id} field={f} onChange={onSetField} onRemove={onRemoveField} />
                                 ))}
                               </div>
                             ))}
@@ -178,10 +201,28 @@ export default function StudioSidebar({
   )
 }
 
-function Field({ field, onChange }: { field: OutlineField; onChange: (id: string, v: string) => void }) {
+function Field({
+  field, onChange, onRemove,
+}: {
+  field: OutlineField
+  onChange: (id: string, v: string) => void
+  onRemove?: (id: string) => void
+}) {
   return (
     <label className={styles.field}>
-      <span>{field.label}</span>
+      <span>
+        {field.label}
+        {onRemove && (
+          <button
+            type="button"
+            className={styles.fieldDel}
+            title="Delete this field"
+            onClick={(e) => { e.preventDefault(); onRemove(field.id) }}
+          >
+            ×
+          </button>
+        )}
+      </span>
       {field.multiline ? (
         <textarea rows={3} value={field.value} onChange={(e) => onChange(field.id, e.target.value)} />
       ) : (

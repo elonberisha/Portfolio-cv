@@ -194,11 +194,64 @@
 }
 
 .field > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-family: var(--mono);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--paper-3);
+}
+
+/* Delete a single field (CRUD) */
+.fieldDel {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--paper-3);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.55;
+}
+
+.fieldDel:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* Reorder / remove controls on an item card */
+.itemTools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconBtn {
+  border: 1px solid color-mix(in oklab, var(--paper) 18%, transparent);
+  background: transparent;
+  color: var(--paper-3);
+  font-size: 12px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.iconBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.iconBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .sidebar input,

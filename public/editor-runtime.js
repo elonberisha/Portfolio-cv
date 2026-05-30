@@ -20,6 +20,8 @@
  *               targets a text node OR a link/attr field, e.g. an <a> href)
  *   <- parent: { type: 'editor:addItem', listId }    (add a card to a list)
  *   <- parent: { type: 'editor:removeItem', itemId } (remove a card)
+ *   <- parent: { type: 'editor:removeField', id }    (delete a text / link field)
+ *   <- parent: { type: 'editor:moveItem', itemId, dir } (reorder a card up/down)
  *   <- parent: { type: 'editor:applyField', field, value }
  */
 (function () {
@@ -524,6 +526,25 @@
     if (d.type === 'editor:removeItem' && d.itemId) {
       var item = document.querySelector('[data-ed-item="' + d.itemId + '"]')
       if (item) { item.remove(); scheduleSave(); scheduleOutline() }
+    }
+    if (d.type === 'editor:removeField' && d.id) {
+      var fEl = document.querySelector('[data-ed-field="' + d.id + '"]') ||
+                document.querySelector('[data-ed-attr="' + d.id + '"]')
+      if (fEl) { fEl.remove(); scheduleSave(); scheduleOutline() }
+    }
+    if (d.type === 'editor:moveItem' && d.itemId) {
+      var mv = document.querySelector('[data-ed-item="' + d.itemId + '"]')
+      if (mv) {
+        var lid = mv.getAttribute('data-ed-list')
+        if (d.dir === 'up') {
+          var prev = mv.previousElementSibling
+          if (prev && prev.getAttribute('data-ed-list') === lid) mv.parentNode.insertBefore(mv, prev)
+        } else {
+          var next = mv.nextElementSibling
+          if (next && next.getAttribute('data-ed-list') === lid) mv.parentNode.insertBefore(next, mv)
+        }
+        scheduleSave(); scheduleOutline()
+      }
     }
   })
 

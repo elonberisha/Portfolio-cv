@@ -109,6 +109,14 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
   const removeItem = useCallback((itemId: string) => {
     frameRef.current?.contentWindow?.postMessage({ type: 'editor:removeItem', itemId }, '*')
   }, [])
+  // Delete a single text / link field, or reorder a card within its list. The
+  // canvas re-emits its outline after the change so the sidebar refreshes.
+  const removeField = useCallback((id: string) => {
+    frameRef.current?.contentWindow?.postMessage({ type: 'editor:removeField', id }, '*')
+  }, [])
+  const moveItem = useCallback((itemId: string, dir: 'up' | 'down') => {
+    frameRef.current?.contentWindow?.postMessage({ type: 'editor:moveItem', itemId, dir }, '*')
+  }, [])
 
   // Upload a replacement image to Media, then deliver its URL to the iframe.
   const uploadImage = useCallback(async (file: File) => {
@@ -162,6 +170,8 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
         onSetField={setField}
         onAddItem={addItem}
         onRemoveItem={removeItem}
+        onRemoveField={removeField}
+        onMoveItem={moveItem}
       />
 
       <div
