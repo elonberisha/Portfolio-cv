@@ -194,18 +194,117 @@
 
 .stepCard h2 {
   font-family: var(--serif);
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 400;
-  line-height: 1;
+  line-height: 1.02;
   letter-spacing: -0.03em;
-  margin: auto 0 14px;
+  margin: 18px 0 10px;
 }
 
 .stepCard p {
   margin: 0;
   color: var(--ink-2);
-  line-height: 1.55;
-  font-size: 14px;
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.stepDone {
+  background: color-mix(in oklab, var(--live) 8%, white);
+}
+
+.stepDone .stepMeta b {
+  color: var(--live);
+}
+
+.stepValue {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: color-mix(in oklab, var(--paper) 70%, white);
+  border-left: 3px solid var(--accent);
+  padding: 7px 9px;
+  word-break: break-word;
+}
+
+.stepCta {
+  margin-top: auto;
+  padding-top: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.stepCta:hover {
+  text-decoration: underline;
+}
+
+.stepCtaMuted {
+  margin-top: auto;
+  padding-top: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.adminLink {
+  display: block;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.adminLink:hover {
+  color: var(--accent);
+}
+
+.cta {
+  max-width: 1180px;
+  margin: 40px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 32px;
+}
+
+.cta h2 {
+  margin: 0;
+  max-width: 520px;
+  font-family: var(--serif);
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.cta .kicker {
+  color: var(--paper-3);
+}
+
+.ctaActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cta .primary {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.cta .secondary {
+  border-color: color-mix(in oklab, var(--paper) 30%, transparent);
+  color: var(--paper);
 }
 
 .builder {

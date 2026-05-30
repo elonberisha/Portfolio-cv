@@ -3,51 +3,23 @@ import Link from 'next/link'
 
 import LogoutButton from '@/components/LogoutButton'
 import { getCurrentUser } from '@/lib/auth'
+import { getMyPortfolio } from '@/lib/portfolio'
 
 import styles from './page.module.css'
 
-const facultyGroups = [
-  'Tech & Engineering',
-  'Business & Management',
-  'Law & Politics',
-  'Medical & Healthcare',
-  'Creative & Media',
-  'Education & Social Sciences',
-  'Sports',
-  'Agriculture & Environment',
-]
-
-const setupSteps = [
-  {
-    number: '01',
-    title: 'Confirm your student identity',
-    text: 'Your account is active. University domain verification and faculty matching will decide which portfolio sections fit you best.',
-    status: 'Active',
-  },
-  {
-    number: '02',
-    title: 'Choose your faculty group',
-    text: 'The CMS will use this to show the right portfolio fields: projects for tech, rotations for medical, publications for law, and more.',
-    status: 'Next',
-  },
-  {
-    number: '03',
-    title: 'Pick a template',
-    text: 'Start from a template that fits your field, then reuse the same profile data for portfolio pages and Europass-standard CV export.',
-    status: 'Ready',
-  },
-  {
-    number: '04',
-    title: 'Publish your subdomain',
-    text: 'When the builder is connected, your public page will be published on your portfolio-cv.online subdomain.',
-    status: 'Planned',
-  },
-]
+const FACULTY_LABELS: Record<string, string> = {
+  tech: 'Tech & Engineering',
+  business: 'Business & Management',
+  law: 'Law & Politics',
+  medical: 'Medical & Healthcare',
+  creative: 'Creative & Media',
+  education: 'Education & Social Sciences',
+  sports: 'Sports',
+  agriculture: 'Agriculture & Environment',
+}
 
 type DashboardProps = {
-  searchParams?: Promise<{
-    subdomain?: string
-  }>
+  searchParams?: Promise<{ subdomain?: string }>
 }
 
 function cleanSubdomain(value: unknown) {
@@ -57,10 +29,7 @@ function cleanSubdomain(value: unknown) {
 
 export default async function DashboardPage({ searchParams }: DashboardProps) {
   const user = await getCurrentUser()
-
-  if (!user) {
-    redirect('/signin')
-  }
+  if (!user) redirect('/signin')
 
   const params = searchParams ? await searchParams : {}
   const requestedSubdomain = cleanSubdomain(params.subdomain)
@@ -69,6 +38,65 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const fullName = user.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
     : user.email
+
+  const portfolio = await getMyPortfolio(user.id)
+
+  // Resolve real completion state for each setup step.
+  const template = portfolio?.template
+  const templateName = template && typeof template === 'object' ? (template as any).name : null
+  const hasFaculty = Boolean(user.facultyGroup)
+  const hasTemplate = Boolean(template)
+  const hasDetails = Boolean(
+    portfolio &&
+      (portfolio.bio ||
+        portfolio.headline ||
+        (portfolio.education && portfolio.education.length) ||
+        (portfolio.projects && portfolio.projects.length) ||
+        (portfolio.skills && portfolio.skills.length)),
+  )
+  const isPublished = Boolean(portfolio?.published)
+
+  const steps = [
+    {
+      number: '01',
+      title: 'Choose your faculty group',
+      text: 'This decides which portfolio sections fit your field — projects for tech, rotations for medical, and more.',
+      done: hasFaculty,
+      value: hasFaculty ? FACULTY_LABELS[user.facultyGroup] : null,
+      href: '/dashboard/edit',
+      cta: 'Set field',
+    },
+    {
+      number: '02',
+      title: 'Pick a template',
+      text: 'Start from a design that fits your field. You can switch templates anytime without losing your data.',
+      done: hasTemplate,
+      value: templateName,
+      href: '/templates',
+      cta: hasTemplate ? 'Change template' : 'Browse templates',
+    },
+    {
+      number: '03',
+      title: 'Fill in your details',
+      text: 'Add your bio, education, links, skills, and projects. This is the content that fills your template.',
+      done: hasDetails,
+      value: hasDetails ? 'Details added' : null,
+      href: '/dashboard/edit',
+      cta: hasDetails ? 'Edit details' : 'Add details',
+    },
+    {
+      number: '04',
+      title: 'Publish your subdomain',
+      text: 'Push your page live at your portfolio-cv.online subdomain. Publishing tools arrive with the public builder.',
+      done: isPublished,
+      value: isPublished ? 'Live' : null,
+      href: null,
+      cta: 'Coming soon',
+    },
+  ]
+
+  const completed = steps.filter((s) => s.done).length
+  const pct = Math.round((completed / steps.length) * 100)
 
   return (
     <main className={styles.dashboard}>
@@ -79,9 +107,8 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
             Build your portfolio, then export your <em>Europass-standard CV</em>.
           </h1>
           <p className={styles.lede}>
-            Hi {displayName}. This is the setup room for your public student
-            profile. Start with the essentials: identity, faculty group,
-            template, and subdomain.
+            Hi {displayName}. Work through the steps below to set up your public
+            student profile: faculty group, template, and your details.
           </p>
         </div>
 
@@ -100,72 +127,69 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <dd>{subdomain}.portfolio-cv.online</dd>
             </div>
             <div>
-              <dt>Status</dt>
-              <dd>Account active</dd>
+              <dt>Faculty</dt>
+              <dd>{hasFaculty ? FACULTY_LABELS[user.facultyGroup] : 'Not set'}</dd>
+            </div>
+            <div>
+              <dt>Template</dt>
+              <dd>{templateName || 'Not chosen'}</dd>
             </div>
           </dl>
+          {user.role === 'admin' && (
+            <Link href="/admin" className={styles.adminLink}>
+              Open admin CMS {'->'}
+            </Link>
+          )}
         </aside>
       </section>
 
       <section className={styles.progress}>
         <div className={styles.progressHead}>
           <span>Setup progress</span>
-          <b>1 / 4 ready</b>
+          <b>
+            {completed} / {steps.length} done · {pct}%
+          </b>
         </div>
         <div className={styles.progressTrack}>
-          <i />
+          <i style={{ width: `${pct}%` }} />
         </div>
       </section>
 
       <section className={styles.setupGrid}>
-        {setupSteps.map((step) => (
-          <article key={step.number} className={styles.stepCard}>
+        {steps.map((step) => (
+          <article key={step.number} className={`${styles.stepCard} ${step.done ? styles.stepDone : ''}`}>
             <div className={styles.stepMeta}>
               <span>{step.number}</span>
-              <b>{step.status}</b>
+              <b>{step.done ? '✓ Done' : 'To do'}</b>
             </div>
             <h2>{step.title}</h2>
             <p>{step.text}</p>
+            {step.value && <div className={styles.stepValue}>{step.value}</div>}
+            {step.href ? (
+              <Link href={step.href} className={styles.stepCta}>
+                {step.cta} {'->'}
+              </Link>
+            ) : (
+              <span className={styles.stepCtaMuted}>{step.cta}</span>
+            )}
           </article>
         ))}
       </section>
 
-      <section className={styles.builder}>
-        <div className={styles.builderCopy}>
-          <p className={styles.kicker}>What appears after signup</p>
-          <h2>Your portfolio starts as structured student data.</h2>
-          <p>
-            The dashboard should not ask every student the same questions. The
-            next version of the builder will change the CMS fields based on the
-            selected faculty group.
-          </p>
-          <div className={styles.actions}>
-            <Link href="/templates" className={styles.primary}>
-              Choose template {'->'}
-            </Link>
-            <Link href="/admin" className={styles.secondary}>
-              Open CMS
-            </Link>
-          </div>
+      <section className={styles.cta}>
+        <div>
+          <p className={styles.kicker}>Next step</p>
+          <h2>
+            {hasTemplate ? 'Keep filling in your portfolio details.' : 'Pick a template to get started.'}
+          </h2>
         </div>
-
-        <div className={styles.fieldPanel}>
-          <div className={styles.panelTop}>
-            <span>Portfolio setup</span>
-            <b>{subdomain}</b>
-          </div>
-          <div className={styles.fakeField}>
-            <label>Public URL</label>
-            <span>{subdomain}.portfolio-cv.online</span>
-          </div>
-          <div className={styles.groupList}>
-            {facultyGroups.map((group) => (
-              <span key={group}>{group}</span>
-            ))}
-          </div>
-          <div className={styles.note}>
-            Builder form fields will be connected to Payload CMS collections.
-          </div>
+        <div className={styles.ctaActions}>
+          <Link href="/templates" className={styles.primary}>
+            {hasTemplate ? 'Change template' : 'Choose template'} {'->'}
+          </Link>
+          <Link href="/dashboard/edit" className={styles.secondary}>
+            Edit details
+          </Link>
         </div>
       </section>
     </main>

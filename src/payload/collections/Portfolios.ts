@@ -59,8 +59,15 @@ export const Portfolios: CollectionConfig = {
     // COMMON FIELDS (all faculty groups)
     // ═══════════════════════════════════════════════
     {
+      name: 'headline',
+      type: 'text',
+      admin: {
+        description: 'Short tagline shown under your name (e.g. "CS student & web developer")',
+      },
+    },
+    {
       name: 'bio',
-      type: 'richText',
+      type: 'textarea',
       admin: {
         description: '2-4 sentences about who you are',
       },
@@ -92,8 +99,8 @@ export const Portfolios: CollectionConfig = {
       fields: [
         { name: 'degree', type: 'text', required: true },
         { name: 'institution', type: 'text', required: true },
-        { name: 'startDate', type: 'date' },
-        { name: 'endDate', type: 'date' },
+        { name: 'startDate', type: 'text' },
+        { name: 'endDate', type: 'text' },
         { name: 'gpa', type: 'text' },
         { name: 'thesis', type: 'text' },
       ],
