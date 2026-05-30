@@ -1,6 +1,6 @@
 .studio {
   display: flex;
-  height: 100vh;
+  height: 100dvh;
   background: var(--paper);
   color: var(--ink);
   overflow: hidden;
@@ -525,7 +525,7 @@
   .studio {
     flex-direction: column;
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
   .sidebar {
     width: 100%;
