@@ -13,6 +13,31 @@
   gap: 28px;
 }
 
+/* Builder mode uses the full desktop width with a multi-column grid. */
+.formWide {
+  max-width: 1180px;
+}
+
+.builderGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.builderGrid .block {
+  margin: 0;
+}
+
+.spanAll {
+  grid-column: 1 / -1;
+}
+
+/* Personal info has many fields — spread them across the full width. */
+.spanAll .grid2 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
 .head {
   display: flex;
   justify-content: space-between;
@@ -303,6 +328,13 @@
   color: var(--live);
 }
 
+/* Collapse the desktop builder grid to a single column on tablets/phones. */
+@media (max-width: 900px) {
+  .builderGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .head {
     flex-direction: column;
@@ -310,7 +342,8 @@
   .choose {
     grid-template-columns: 1fr;
   }
-  .grid2 {
+  .grid2,
+  .spanAll .grid2 {
     grid-template-columns: 1fr;
   }
   .row {

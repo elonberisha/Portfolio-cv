@@ -1,14 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
+import StudioSidebar, { type SidebarInitial } from './StudioSidebar'
 import styles from './studio.module.css'
 
 type Props = {
   initialHtml: string
   templateName: string | null
+  details: SidebarInitial
 }
 
 // Wrap the stored page fragment into a full document and inject the generic
@@ -22,8 +22,7 @@ function buildSrcDoc(html: string) {
 </body></html>`
 }
 
-export default function StudioClient({ initialHtml, templateName }: Props) {
-  const router = useRouter()
+export default function StudioClient({ initialHtml, templateName, details }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingImgId = useRef<string | null>(null)
@@ -43,6 +42,11 @@ export default function StudioClient({ initialHtml, templateName }: Props) {
     } catch {
       setStatus('idle')
     }
+  }, [])
+
+  // Push a structured field value to the canvas (data-field slots, if any).
+  const applyField = useCallback((field: string, value: string) => {
+    frameRef.current?.contentWindow?.postMessage({ type: 'editor:applyField', field, value }, '*')
   }, [])
 
   // Upload a replacement image to Media, then deliver its URL to the iframe.
@@ -81,49 +85,32 @@ export default function StudioClient({ initialHtml, templateName }: Props) {
 
   return (
     <div className={styles.studio}>
-      <header className={styles.bar}>
-        <div className={styles.barLeft}>
-          <span className={styles.kicker}>Studio</span>
-          <b>{templateName || 'Your template'}</b>
-        </div>
-        <div className={styles.barRight}>
-          <span className={styles.status} data-state={status}>
-            {status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved' : 'Edit anything below'}
-          </span>
-          <Link href="/dashboard/edit" className={styles.secondary}>
-            Quick form
-          </Link>
-          <Link href="/dashboard/cv" className={styles.primary}>
-            Next: CV →
-          </Link>
-        </div>
-      </header>
+      <StudioSidebar
+        initial={details}
+        status={status}
+        templateName={templateName}
+        onApplyField={applyField}
+      />
 
-      {hasHtml ? (
-        <iframe
-          ref={frameRef}
-          className={styles.canvas}
-          title="Portfolio editor"
-          sandbox="allow-scripts"
-          srcDoc={buildSrcDoc(initialHtml)}
-        />
-      ) : (
-        <div className={styles.empty}>
-          <h2>Preparing your template…</h2>
-          <p>
-            We couldn’t generate an editable snapshot yet. You can still fill in your
-            details with the quick form, or try re-selecting your template.
-          </p>
-          <div className={styles.emptyActions}>
-            <Link href="/dashboard/edit" className={styles.primary}>
-              Open quick form
-            </Link>
-            <Link href="/templates" className={styles.secondary}>
-              Re-select template
-            </Link>
+      <div className={styles.canvasWrap}>
+        {hasHtml ? (
+          <iframe
+            ref={frameRef}
+            className={styles.canvas}
+            title="Portfolio editor"
+            sandbox="allow-scripts"
+            srcDoc={buildSrcDoc(initialHtml)}
+          />
+        ) : (
+          <div className={styles.empty}>
+            <h2>Preparing your template…</h2>
+            <p>
+              We couldn’t generate an editable snapshot yet. Fill in your details on the
+              left, or re-select your template.
+            </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <input
         ref={fileRef}

@@ -145,7 +145,7 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
 
   return (
     <main className={styles.page}>
-      <div className={styles.form}>
+      <div className={`${styles.form} ${mode === 'builder' ? styles.formWide : ''}`}>
         <header className={styles.head}>
           <div>
             <p className={styles.kicker}>Step 4 · Your CV</p>
@@ -196,7 +196,8 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
 
         {mode === 'builder' && (
           <>
-            <section className={styles.block}>
+          <div className={styles.builderGrid}>
+            <section className={`${styles.block} ${styles.spanAll}`}>
               <div className={styles.blockHead}><span className={styles.num}>01</span><h2>Personal information</h2></div>
               <div className={styles.grid2}>
                 <Field label="First name" value={pi.firstName} onChange={(v) => setPI('firstName', v)} />
@@ -216,7 +217,7 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
               </label>
             </section>
 
-            <section className={styles.block}>
+            <section className={`${styles.block} ${styles.spanAll}`}>
               <div className={styles.blockHead}><span className={styles.num}>02</span><h2>Work experience</h2></div>
               {work.map((w, i) => (
                 <div key={i} className={styles.cardRow}>
@@ -279,6 +280,7 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
                 <textarea rows={3} value={data.otherSkills || ''} onChange={(e) => setData((d) => ({ ...d, otherSkills: e.target.value }))} />
               </label>
             </section>
+          </div>
 
             <div className={styles.actions}>
               <button type="button" className={styles.save} onClick={saveBuilder} disabled={saving}>

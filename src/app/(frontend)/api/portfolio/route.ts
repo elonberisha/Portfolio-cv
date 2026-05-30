@@ -19,6 +19,7 @@ type Incoming = {
   facultyGroup?: string
   headline?: string
   bio?: string
+  published?: boolean
   links?: { platform?: string; url?: string; label?: string }[]
   education?: { degree?: string; institution?: string; startDate?: string; endDate?: string }[]
   skills?: { name?: string }[]
@@ -53,24 +54,34 @@ export async function PATCH(request: Request) {
     })
   }
 
-  const data = {
-    headline: str(body.headline),
-    bio: str(body.bio),
-    links: (body.links ?? [])
+  // Only touch keys that are actually present so partial saves (e.g. just
+  // toggling `published`) don't wipe other fields.
+  const data: Record<string, unknown> = {}
+  if ('headline' in body) data.headline = str(body.headline)
+  if ('bio' in body) data.bio = str(body.bio)
+  if (typeof body.published === 'boolean') data.published = body.published
+  if ('links' in body) {
+    data.links = (body.links ?? [])
       .filter((l) => str(l.url))
-      .map((l) => ({ platform: str(l.platform) || 'other', url: str(l.url), label: str(l.label) })),
-    education: (body.education ?? [])
+      .map((l) => ({ platform: str(l.platform) || 'other', url: str(l.url), label: str(l.label) }))
+  }
+  if ('education' in body) {
+    data.education = (body.education ?? [])
       .filter((e) => str(e.degree) || str(e.institution))
       .map((e) => ({
         degree: str(e.degree),
         institution: str(e.institution),
         startDate: str(e.startDate) || undefined,
         endDate: str(e.endDate) || undefined,
-      })),
-    skills: (body.skills ?? []).filter((s) => str(s.name)).map((s) => ({ name: str(s.name) })),
-    projects: (body.projects ?? [])
+      }))
+  }
+  if ('skills' in body) {
+    data.skills = (body.skills ?? []).filter((s) => str(s.name)).map((s) => ({ name: str(s.name) }))
+  }
+  if ('projects' in body) {
+    data.projects = (body.projects ?? [])
       .filter((p) => str(p.title))
-      .map((p) => ({ title: str(p.title), description: str(p.description), liveUrl: str(p.liveUrl) })),
+      .map((p) => ({ title: str(p.title), description: str(p.description), liveUrl: str(p.liveUrl) }))
   }
 
   const existing = await payload.find({
