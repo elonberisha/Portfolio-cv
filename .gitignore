@@ -39,3 +39,6 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Uploads (user-uploaded media, not tracked)
+uploads/
