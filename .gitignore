@@ -4,15 +4,29 @@ node_modules/
 # Next.js
 .next/
 out/
+next-env.d.ts
+
+# TypeScript
+*.tsbuildinfo
 
 # Payload
 media/
 src/payload/payload-types.ts
 
+# Database (dev SQLite — re-seeded on boot via payload onInit)
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
 # Environment
 .env
 .env.local
 .env.production
+
+# Logs
+*.log
+npm-debug.log*
 
 # OS
 .DS_Store
