@@ -157,5 +157,17 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
+
+<script>
+/* When preview.html is embedded inside the studio iframe, load the editor
+   runtime after the React tree has rendered (one rAF is enough). */
+if (window !== window.parent) {
+  requestAnimationFrame(function() {
+    var s = document.createElement('script');
+    s.src = '/editor-runtime.js';
+    document.body.appendChild(s);
+  });
+}
+</script>
 </body>
 </html>

@@ -16,6 +16,7 @@ export default async function StudioPage() {
 
   const template = portfolio.template
   const templateName = template && typeof template === 'object' ? (template as any).name : null
+  const templateSlug = template && typeof template === 'object' ? (template as any).slug : null
 
   const details: SidebarInitial = {
     published: Boolean(portfolio.published),
@@ -27,6 +28,7 @@ export default async function StudioPage() {
     <StudioClient
       initialHtml={portfolio.pageHtml || ''}
       templateName={templateName}
+      templateSlug={templateSlug}
       details={details}
       subdomain={subdomain}
     />

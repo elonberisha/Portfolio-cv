@@ -45,6 +45,7 @@ const DEVICE_W: Record<Device, number | null> = { desktop: null, tablet: 820, mo
 type Props = {
   initialHtml: string
   templateName: string | null
+  templateSlug: string | null
   details: SidebarInitial
   subdomain?: string | null
 }
@@ -58,7 +59,7 @@ function buildSrcDoc(html: string) {
 </body></html>`
 }
 
-export default function StudioClient({ initialHtml, templateName, details, subdomain }: Props) {
+export default function StudioClient({ initialHtml, templateName, templateSlug, details, subdomain }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingImgId = useRef<string | null>(null)
@@ -286,7 +287,7 @@ export default function StudioClient({ initialHtml, templateName, details, subdo
         />
 
         <main className={styles.canvasWrap}>
-          {hasHtml ? (
+          {(hasHtml || templateSlug) ? (
             <div
               className={styles.deviceHolder}
               data-device={device}
@@ -297,22 +298,31 @@ export default function StudioClient({ initialHtml, templateName, details, subdo
                   <span />{subdomain || 'you.portfolio-cv.online'}
                 </div>
               )}
-              <iframe
-                ref={frameRef}
-                className={styles.canvas}
-                title="Portfolio editor"
-                sandbox="allow-scripts"
-                srcDoc={buildSrcDoc(initialHtml)}
-              />
+              {hasHtml ? (
+                <iframe
+                  ref={frameRef}
+                  className={styles.canvas}
+                  title="Portfolio editor"
+                  sandbox="allow-scripts"
+                  srcDoc={buildSrcDoc(initialHtml)}
+                />
+              ) : (
+                /* No snapshot yet — load the live template and inject editor-runtime
+                   via the snippet in preview.html (auto-loads when window !== parent). */
+                <iframe
+                  ref={frameRef}
+                  className={styles.canvas}
+                  title="Portfolio editor"
+                  sandbox="allow-scripts allow-same-origin"
+                  src={`/preview.html?id=${encodeURIComponent(templateSlug!)}`}
+                />
+              )}
             </div>
           ) : (
             <div className={styles.empty}>
               <div className={styles.emptyGlyph}>✦</div>
-              <h2>Preparing your template…</h2>
-              <p>
-                We couldn’t generate an editable snapshot yet. Add your details on the left,
-                or re-select your template.
-              </p>
+              <h2>No template selected</h2>
+              <p>Go back and pick a template to get started.</p>
             </div>
           )}
 
