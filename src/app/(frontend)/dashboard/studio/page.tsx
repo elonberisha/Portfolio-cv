@@ -21,11 +21,14 @@ export default async function StudioPage() {
     published: Boolean(portfolio.published),
   }
 
+  const subdomain = (user as any).subdomain ?? null
+
   return (
     <StudioClient
       initialHtml={portfolio.pageHtml || ''}
       templateName={templateName}
       details={details}
+      subdomain={subdomain}
     />
   )
 }

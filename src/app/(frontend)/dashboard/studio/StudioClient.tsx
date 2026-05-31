@@ -2,10 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import StudioSidebar, { type SidebarInitial, type OutlineSection } from './StudioSidebar'
+import StudioSidebar, {
+  type SidebarInitial,
+  type OutlineSection,
+  type StudioTab,
+} from './StudioSidebar'
 import styles from './studio.module.css'
 
-// Patch a single field's value wherever it lives in the section tree.
+/* Patch a single field's value wherever it lives in the section tree. */
 function patchField(sections: OutlineSection[], id: string, value: string): OutlineSection[] {
   return sections.map((s) => ({
     ...s,
@@ -20,14 +24,31 @@ function patchField(sections: OutlineSection[], id: string, value: string): Outl
   }))
 }
 
+/* Patch a link/button href wherever it lives. */
+function patchHref(sections: OutlineSection[], id: string, href: string): OutlineSection[] {
+  return sections.map((s) => ({
+    ...s,
+    fields: s.fields.map((f) => (f.id === id ? { ...f, href } : f)),
+    lists: s.lists.map((l) => ({
+      ...l,
+      items: l.items.map((it) => ({
+        ...it,
+        fields: it.fields.map((f) => (f.id === id ? { ...f, href } : f)),
+      })),
+    })),
+  }))
+}
+
+type Device = 'desktop' | 'tablet' | 'mobile'
+const DEVICE_W: Record<Device, number | null> = { desktop: null, tablet: 820, mobile: 390 }
+
 type Props = {
   initialHtml: string
   templateName: string | null
   details: SidebarInitial
+  subdomain?: string | null
 }
 
-// Wrap the stored page fragment into a full document and inject the generic
-// editor runtime. The iframe is sandboxed (allow-scripts only) for isolation.
 function buildSrcDoc(html: string) {
   return `<!doctype html><html><head><meta charset="utf-8">
 <base href="/">
@@ -37,50 +58,30 @@ function buildSrcDoc(html: string) {
 </body></html>`
 }
 
-export default function StudioClient({ initialHtml, templateName, details }: Props) {
+export default function StudioClient({ initialHtml, templateName, details, subdomain }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingImgId = useRef<string | null>(null)
+
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [hasHtml] = useState(Boolean(initialHtml.trim()))
   const [sections, setSections] = useState<OutlineSection[]>([])
+  const [published, setPublished] = useState(details.published)
 
-  // Resizable sidebar: width driven by a CSS var on the container, dragged via
-  // the splitter handle and remembered across reloads.
-  const studioRef = useRef<HTMLDivElement>(null)
-  const widthRef = useRef(340)
-  const [sidebarWidth, setSidebarWidth] = useState(340)
-  const [dragging, setDragging] = useState(false)
+  /* UI state — what makes the new UX work */
+  const [tab, setTab] = useState<StudioTab>('content')
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null)
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true) // drawer state on tablet/mobile
+  const [collapsed, setCollapsed] = useState(false)     // full-width canvas on desktop
+  const [device, setDevice] = useState<Device>('desktop')
 
+  /* Default the focused section to the first one we receive. */
   useEffect(() => {
-    const saved = Number(localStorage.getItem('studioSidebarW'))
-    if (saved >= 260 && saved <= 1000) { widthRef.current = saved; setSidebarWidth(saved) }
-  }, [])
+    if (!activeSectionId && sections.length) setActiveSectionId(sections[0].id)
+  }, [sections, activeSectionId])
 
-  const startResize = useCallback((e: React.PointerEvent) => {
-    e.preventDefault()
-    setDragging(true)
-    document.body.style.userSelect = 'none'
-    document.body.style.cursor = 'col-resize'
-    const onMove = (ev: PointerEvent) => {
-      const left = studioRef.current?.getBoundingClientRect().left ?? 0
-      const max = Math.min(760, Math.round(window.innerWidth * 0.7))
-      const w = Math.max(260, Math.min(max, ev.clientX - left))
-      widthRef.current = w
-      setSidebarWidth(w)
-    }
-    const onUp = () => {
-      setDragging(false)
-      document.body.style.userSelect = ''
-      document.body.style.cursor = ''
-      document.removeEventListener('pointermove', onMove)
-      document.removeEventListener('pointerup', onUp)
-      try { localStorage.setItem('studioSidebarW', String(widthRef.current)) } catch { /* ignore */ }
-    }
-    document.addEventListener('pointermove', onMove)
-    document.addEventListener('pointerup', onUp)
-  }, [])
-
+  /* ── Persistence ─────────────────────────────────────── */
   const save = useCallback(async (html: string) => {
     setStatus('saving')
     try {
@@ -96,29 +97,55 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
     }
   }, [])
 
-  // Edit one of the template's own text nodes from the sidebar Details form.
+  const togglePublish = useCallback(async () => {
+    const next = !published
+    setPublished(next)
+    try {
+      await fetch('/api/portfolio', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ published: next }),
+      })
+    } catch {
+      setPublished(!next)
+    }
+  }, [published])
+
+  /* ── Canvas messaging (protocol preserved + extended) ── */
+  const post = useCallback((msg: Record<string, unknown>) => {
+    frameRef.current?.contentWindow?.postMessage(msg, '*')
+  }, [])
+
   const setField = useCallback((id: string, value: string) => {
     setSections((prev) => patchField(prev, id, value))
-    frameRef.current?.contentWindow?.postMessage({ type: 'editor:setField', id, value }, '*')
+    post({ type: 'editor:setField', id, value })
+  }, [post])
+
+  const setHref = useCallback((id: string, href: string) => {
+    setSections((prev) => patchHref(prev, id, href))
+    post({ type: 'editor:setHref', id, href })
+  }, [post])
+
+  const addItem = useCallback((listId: string) => post({ type: 'editor:addItem', listId }), [post])
+  const removeItem = useCallback((itemId: string) => post({ type: 'editor:removeItem', itemId }), [post])
+  const removeField = useCallback((id: string) => post({ type: 'editor:removeField', id }), [post])
+  const moveItem = useCallback(
+    (itemId: string, dir: 'up' | 'down') => post({ type: 'editor:moveItem', itemId, dir }),
+    [post],
+  )
+  const reorderItem = useCallback(
+    (listId: string, from: number, to: number) =>
+      post({ type: 'editor:reorderItem', listId, from, to }),
+    [post],
+  )
+  /* Scroll the canvas to a block + flash it — used when you pick a section. */
+  const focusOnCanvas = useCallback((id: string) => post({ type: 'editor:focus', id }), [post])
+  const requestImageFor = useCallback((id: string) => {
+    pendingImgId.current = id
+    fileRef.current?.click()
   }, [])
 
-  // Add / remove a repeated card (e.g. an experience entry) from the sidebar.
-  const addItem = useCallback((listId: string) => {
-    frameRef.current?.contentWindow?.postMessage({ type: 'editor:addItem', listId }, '*')
-  }, [])
-  const removeItem = useCallback((itemId: string) => {
-    frameRef.current?.contentWindow?.postMessage({ type: 'editor:removeItem', itemId }, '*')
-  }, [])
-  // Delete a single text / link field, or reorder a card within its list. The
-  // canvas re-emits its outline after the change so the sidebar refreshes.
-  const removeField = useCallback((id: string) => {
-    frameRef.current?.contentWindow?.postMessage({ type: 'editor:removeField', id }, '*')
-  }, [])
-  const moveItem = useCallback((itemId: string, dir: 'up' | 'down') => {
-    frameRef.current?.contentWindow?.postMessage({ type: 'editor:moveItem', itemId, dir }, '*')
-  }, [])
-
-  // Upload a replacement image to Media, then deliver its URL to the iframe.
   const uploadImage = useCallback(async (file: File) => {
     const id = pendingImgId.current
     const fd = new FormData()
@@ -128,78 +155,191 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
       const res = await fetch('/api/media', { method: 'POST', credentials: 'include', body: fd })
       const data = await res.json()
       const url = data?.doc?.url
-      if (url && id && frameRef.current?.contentWindow) {
-        frameRef.current.contentWindow.postMessage({ type: 'editor:setImage', id, url }, '*')
-      }
+      if (url && id) post({ type: 'editor:setImage', id, url })
     } catch {
       /* ignore */
     } finally {
       pendingImgId.current = null
     }
-  }, [])
+  }, [post])
 
+  /* ── Inbound canvas events ───────────────────────────── */
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       const d = e.data || {}
       if (d.type === 'editor:change' && typeof d.html === 'string') {
         save(d.html)
       } else if (d.type === 'editor:requestImage') {
-        pendingImgId.current = d.id
-        fileRef.current?.click()
+        requestImageFor(d.id)
       } else if (d.type === 'editor:outline' && Array.isArray(d.sections)) {
         setSections(d.sections)
       } else if (d.type === 'editor:fieldInput' && d.id) {
         setSections((prev) => patchField(prev, d.id, d.value))
+      } else if (d.type === 'editor:select' && d.id) {
+        /* User clicked an element on the template → open its section + highlight. */
+        setSelectedFieldId(d.id)
+        if (d.sectionId) { setActiveSectionId(d.sectionId); setSidebarOpen(true) }
+        if (d.kind && (d.kind === 'link' || d.kind === 'button' || d.kind === 'nav')) {
+          setTab('elements')
+        }
       }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [save])
+  }, [save, requestImageFor])
+
+  const deviceW = DEVICE_W[device]
+  const statusText = status === 'saving' ? 'Saving…' : status === 'saved' ? 'All changes saved' : 'Auto-saves'
 
   return (
     <div
       className={styles.studio}
-      ref={studioRef}
-      style={{ '--sidebar-w': `${sidebarWidth}px` } as React.CSSProperties}
+      data-collapsed={collapsed}
+      data-drawer-open={sidebarOpen}
     >
-      <StudioSidebar
-        initial={details}
-        status={status}
-        templateName={templateName}
-        sections={sections}
-        onSetField={setField}
-        onAddItem={addItem}
-        onRemoveItem={removeItem}
-        onRemoveField={removeField}
-        onMoveItem={moveItem}
-      />
-
-      <div
-        className={styles.resizer}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Drag to resize the editor sidebar"
-        onPointerDown={startResize}
-      />
-
-      <div className={styles.canvasWrap} style={dragging ? { pointerEvents: 'none' } : undefined}>
-        {hasHtml ? (
-          <iframe
-            ref={frameRef}
-            className={styles.canvas}
-            title="Portfolio editor"
-            sandbox="allow-scripts"
-            srcDoc={buildSrcDoc(initialHtml)}
-          />
-        ) : (
-          <div className={styles.empty}>
-            <h2>Preparing your template…</h2>
-            <p>
-              We couldn’t generate an editable snapshot yet. Fill in your details on the
-              left, or re-select your template.
-            </p>
+      {/* ── Top command bar ─────────────────────────────── */}
+      <header className={styles.topbar}>
+        <div className={styles.tbLeft}>
+          <button
+            type="button"
+            className={styles.iconGhost}
+            onClick={() => { setCollapsed((c) => !c); setSidebarOpen((o) => !o) }}
+            title={collapsed ? 'Show editor' : 'Hide editor'}
+            aria-label="Toggle editor panel"
+          >
+            <span className={styles.panelGlyph} data-on={!collapsed} />
+          </button>
+          <div className={styles.tbTitle}>
+            <span className={styles.tbKicker}>Studio</span>
+            <b>{templateName || 'Your template'}</b>
           </div>
-        )}
+          <span className={styles.saveDot} data-state={status} title={statusText}>
+            <i />{statusText}
+          </span>
+        </div>
+
+        <div className={styles.tbCenter} role="group" aria-label="Preview device">
+          {(['desktop', 'tablet', 'mobile'] as Device[]).map((d) => (
+            <button
+              key={d}
+              type="button"
+              className={styles.devBtn}
+              data-on={device === d}
+              onClick={() => setDevice(d)}
+              title={d[0].toUpperCase() + d.slice(1)}
+              aria-label={d}
+            >
+              <span className={styles[`dev_${d}` as keyof typeof styles] as string} />
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.tbRight}>
+          <a
+            className={styles.previewLink}
+            href={subdomain ? `https://${subdomain}` : '#'}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Preview ↗
+          </a>
+          <button
+            type="button"
+            className={styles.publishBtn}
+            data-live={published}
+            onClick={togglePublish}
+          >
+            <span className={styles.pubGlow} />
+            {published ? 'Published' : 'Publish'}
+          </button>
+        </div>
+      </header>
+
+      {/* ── Body: sidebar + canvas ──────────────────────── */}
+      <div className={styles.body}>
+        {/* Scrim for drawer mode (tablet / mobile) */}
+        <div
+          className={styles.scrim}
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden={!sidebarOpen}
+        />
+
+        <StudioSidebar
+          tab={tab}
+          onTab={setTab}
+          sections={sections}
+          activeSectionId={activeSectionId}
+          onPickSection={(id) => { setActiveSectionId(id); focusOnCanvas(id) }}
+          selectedFieldId={selectedFieldId}
+          published={published}
+          onTogglePublish={togglePublish}
+          subdomain={subdomain ?? null}
+          onSetField={setField}
+          onSetHref={setHref}
+          onAddItem={addItem}
+          onRemoveItem={removeItem}
+          onRemoveField={removeField}
+          onMoveItem={moveItem}
+          onReorderItem={reorderItem}
+          onRequestImage={requestImageFor}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+        <main className={styles.canvasWrap}>
+          {hasHtml ? (
+            <div
+              className={styles.deviceHolder}
+              data-device={device}
+              style={deviceW ? ({ ['--device-w' as string]: `${deviceW}px` }) : undefined}
+            >
+              {device !== 'desktop' && (
+                <div className={styles.deviceBar} aria-hidden>
+                  <span />{subdomain || 'you.portfolio-cv.online'}
+                </div>
+              )}
+              <iframe
+                ref={frameRef}
+                className={styles.canvas}
+                title="Portfolio editor"
+                sandbox="allow-scripts"
+                srcDoc={buildSrcDoc(initialHtml)}
+              />
+            </div>
+          ) : (
+            <div className={styles.empty}>
+              <div className={styles.emptyGlyph}>✦</div>
+              <h2>Preparing your template…</h2>
+              <p>
+                We couldn’t generate an editable snapshot yet. Add your details on the left,
+                or re-select your template.
+              </p>
+            </div>
+          )}
+
+          {/* Floating hint — click-to-edit affordance, dismissable */}
+          <CanvasHint />
+
+          {/* Reopen tab when collapsed on desktop */}
+          {collapsed && (
+            <button
+              type="button"
+              className={styles.reopenTab}
+              onClick={() => { setCollapsed(false); setSidebarOpen(true) }}
+            >
+              ‹ Editor
+            </button>
+          )}
+
+          {/* Floating editor button for mobile/tablet drawer */}
+          <button
+            type="button"
+            className={styles.fab}
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open editor"
+          >
+            Edit content
+          </button>
+        </main>
       </div>
 
       <input
@@ -213,6 +353,26 @@ export default function StudioClient({ initialHtml, templateName, details }: Pro
           e.target.value = ''
         }}
       />
+    </div>
+  )
+}
+
+function CanvasHint() {
+  const [show, setShow] = useState(true)
+  useEffect(() => {
+    try { if (localStorage.getItem('studioHintSeen')) setShow(false) } catch { /* ignore */ }
+  }, [])
+  if (!show) return null
+  return (
+    <div className={styles.canvasHint}>
+      <span>Click any text, image, or button on the page to edit it in place.</span>
+      <button
+        type="button"
+        onClick={() => { setShow(false); try { localStorage.setItem('studioHintSeen', '1') } catch { /* ignore */ } }}
+        aria-label="Dismiss"
+      >
+        Got it
+      </button>
     </div>
   )
 }
