@@ -1,17 +1,47 @@
 /* ================================================================
    Portfolio Setup Form
-   Design anchor: Industrial — dark shell, warm paper text,
-   serif headings, monospace labels, clean grid.
+   Design anchor: Industrial — warm light shell (paper default),
+   dark toggle available. Serif headings, monospace labels.
    ================================================================ */
+
+/* ── CSS-variable skin tokens ───────────────────────────── */
+/* Light (default) */
+.shell {
+  --setup-bg:       #f7f3eb;        /* --paper */
+  --setup-surface:  #ffffff;
+  --setup-surface2: #f0ece3;
+  --setup-text:     #1a1714;        /* --ink */
+  --setup-muted:    rgba(26,23,20,0.45);
+  --setup-border:   rgba(26,23,20,0.12);
+  --setup-border2:  rgba(26,23,20,0.07);
+  --setup-input-bg: rgba(26,23,20,0.04);
+  --setup-input-focus: rgba(26,23,20,0.09);
+  --setup-placeholder: rgba(26,23,20,0.28);
+}
+
+/* Dark override */
+.shell[data-theme='dark'] {
+  --setup-bg:       #1a1714;
+  --setup-surface:  rgba(247,243,235,0.04);
+  --setup-surface2: rgba(247,243,235,0.02);
+  --setup-text:     #f7f3eb;
+  --setup-muted:    rgba(247,243,235,0.45);
+  --setup-border:   rgba(247,243,235,0.12);
+  --setup-border2:  rgba(247,243,235,0.07);
+  --setup-input-bg: rgba(247,243,235,0.05);
+  --setup-input-focus: rgba(247,243,235,0.08);
+  --setup-placeholder: rgba(247,243,235,0.25);
+}
 
 /* ── Shell ──────────────────────────────────────────────── */
 .shell {
   min-height: 100vh;
-  background: var(--ink, #1a1714);
-  color: var(--paper, #f7f3eb);
+  background: var(--setup-bg);
+  color: var(--setup-text);
   display: flex;
   flex-direction: column;
   font-family: var(--sans, 'Plus Jakarta Sans', sans-serif);
+  transition: background 0.25s, color 0.25s;
 }
 
 /* ── Progress bar ───────────────────────────────────────── */
@@ -21,7 +51,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: color-mix(in oklab, var(--paper, #f7f3eb) 10%, transparent);
+  background: var(--setup-border2);
   z-index: 100;
 }
 
@@ -43,8 +73,9 @@
   gap: 12px;
   height: 52px;
   padding: 0 28px;
-  background: color-mix(in oklab, var(--ink, #1a1714) 96%, #000);
-  border-bottom: 1px solid color-mix(in oklab, var(--paper, #f7f3eb) 8%, transparent);
+  background: var(--setup-bg);
+  border-bottom: 1px solid var(--setup-border2);
+  transition: background 0.25s;
 }
 
 .tbLeft {
@@ -62,28 +93,54 @@
 }
 
 .tbDivider {
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 25%, transparent);
+  color: var(--setup-muted);
   font-size: 14px;
 }
 
 .tbTitle {
   font-size: 14px;
   font-weight: 500;
-  color: var(--paper, #f7f3eb);
+  color: var(--setup-text);
+}
+
+.tbRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Theme toggle button */
+.themeToggle {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--setup-input-bg);
+  border: 1px solid var(--setup-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--setup-text);
+  transition: background 0.15s, border-color 0.15s;
+}
+.themeToggle:hover {
+  background: var(--setup-input-focus);
 }
 
 .skipAll {
   font-family: var(--mono, monospace);
   font-size: 11px;
   letter-spacing: 0.04em;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 45%, transparent);
+  color: var(--setup-muted);
   background: none;
   border: none;
   cursor: pointer;
   padding: 6px 0;
   transition: color 0.2s;
 }
-.skipAll:hover { color: var(--paper, #f7f3eb); }
+.skipAll:hover { color: var(--setup-text); }
 
 /* ── Body layout ────────────────────────────────────────── */
 .body {
@@ -103,7 +160,7 @@
   padding-right: 32px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   position: sticky;
   top: 80px;
   align-self: start;
@@ -115,11 +172,11 @@
   gap: 10px;
   padding: 8px 12px;
   border-radius: 6px;
-  transition: background 0.2s;
+  transition: background 0.18s;
 }
 
 .stepNavItem[data-active='true'] {
-  background: color-mix(in oklab, var(--paper, #f7f3eb) 6%, transparent);
+  background: var(--setup-border2);
 }
 
 .stepDot {
@@ -127,20 +184,20 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1.5px solid color-mix(in oklab, var(--paper, #f7f3eb) 20%, transparent);
+  border: 1.5px solid var(--setup-border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--mono, monospace);
   font-size: 10px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 40%, transparent);
+  color: var(--setup-muted);
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 
 .stepNavItem[data-active='true'] .stepDot {
   border-color: var(--accent, #7b2440);
   background: var(--accent, #7b2440);
-  color: var(--paper, #f7f3eb);
+  color: #fff;
 }
 
 .stepNavItem[data-done='true'] .stepDot {
@@ -151,17 +208,17 @@
 
 .stepNavLabel {
   font-size: 13px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 40%, transparent);
+  color: var(--setup-muted);
   transition: color 0.2s;
 }
 
 .stepNavItem[data-active='true'] .stepNavLabel {
-  color: var(--paper, #f7f3eb);
+  color: var(--setup-text);
   font-weight: 500;
 }
 
 .stepNavItem[data-done='true'] .stepNavLabel {
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 55%, transparent);
+  color: color-mix(in oklab, var(--setup-text) 55%, transparent);
 }
 
 /* ── Main form area ─────────────────────────────────────── */
@@ -189,7 +246,7 @@
   font-family: var(--serif, Georgia, serif);
   font-size: clamp(22px, 3vw, 32px);
   font-weight: 400;
-  color: var(--paper, #f7f3eb);
+  color: var(--setup-text);
   margin: 0 0 2px;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -197,7 +254,7 @@
 
 .stepDesc {
   font-size: 14px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 55%, transparent);
+  color: var(--setup-muted);
   margin: 0;
   line-height: 1.5;
 }
@@ -227,17 +284,17 @@
   font-size: 11px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 50%, transparent);
+  color: var(--setup-muted);
 }
 
 .input,
 .select,
 .textarea {
   width: 100%;
-  background: color-mix(in oklab, var(--paper, #f7f3eb) 5%, transparent);
-  border: 1px solid color-mix(in oklab, var(--paper, #f7f3eb) 12%, transparent);
+  background: var(--setup-input-bg);
+  border: 1px solid var(--setup-border);
   border-radius: 6px;
-  color: var(--paper, #f7f3eb);
+  color: var(--setup-text);
   font-family: var(--sans, sans-serif);
   font-size: 14px;
   padding: 9px 12px;
@@ -253,14 +310,14 @@
 
 .input::placeholder,
 .textarea::placeholder {
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 22%, transparent);
+  color: var(--setup-placeholder);
 }
 
 .input:focus,
 .select:focus,
 .textarea:focus {
-  border-color: color-mix(in oklab, var(--accent, #7b2440) 70%, var(--paper, #f7f3eb));
-  background: color-mix(in oklab, var(--paper, #f7f3eb) 7%, transparent);
+  border-color: color-mix(in oklab, var(--accent, #7b2440) 65%, transparent);
+  background: var(--setup-input-focus);
 }
 
 .textarea {
@@ -278,7 +335,8 @@
 }
 
 .select option {
-  background: #1a1714;
+  background: var(--setup-bg, #f7f3eb);
+  color: var(--setup-text, #1a1714);
 }
 
 /* ── Checkbox label ─────────────────────────────────────── */
@@ -287,20 +345,25 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 55%, transparent);
+  color: var(--setup-muted);
   cursor: pointer;
   margin-top: 4px;
 }
 
 /* ── Array card ─────────────────────────────────────────── */
 .arrayCard {
-  background: color-mix(in oklab, var(--paper, #f7f3eb) 3%, transparent);
-  border: 1px solid color-mix(in oklab, var(--paper, #f7f3eb) 9%, transparent);
+  background: var(--setup-surface);
+  border: 1px solid var(--setup-border);
   border-radius: 10px;
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-shadow: 0 1px 3px rgba(26,23,20,0.06);
+}
+
+.shell[data-theme='dark'] .arrayCard {
+  box-shadow: none;
 }
 
 .arrayCardHeader {
@@ -314,15 +377,15 @@
   font-family: var(--mono, monospace);
   font-size: 12px;
   letter-spacing: 0.03em;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 60%, transparent);
+  color: var(--setup-muted);
 }
 
 .removeBtn {
   flex-shrink: 0;
   background: none;
-  border: 1px solid color-mix(in oklab, var(--paper, #f7f3eb) 12%, transparent);
+  border: 1px solid var(--setup-border);
   border-radius: 4px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 35%, transparent);
+  color: var(--setup-muted);
   font-size: 12px;
   width: 26px;
   height: 26px;
@@ -341,9 +404,9 @@
 .addBtn {
   align-self: flex-start;
   background: none;
-  border: 1.5px dashed color-mix(in oklab, var(--paper, #f7f3eb) 18%, transparent);
+  border: 1.5px dashed var(--setup-border);
   border-radius: 8px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 55%, transparent);
+  color: var(--setup-muted);
   font-family: var(--mono, monospace);
   font-size: 12px;
   letter-spacing: 0.03em;
@@ -353,7 +416,7 @@
 }
 .addBtn:hover {
   border-color: var(--accent, #7b2440);
-  color: var(--paper, #f7f3eb);
+  color: var(--setup-text);
 }
 
 /* ── Skill chips ────────────────────────────────────────── */
@@ -368,17 +431,17 @@
 
 .chipAdd {
   flex-shrink: 0;
-  background: color-mix(in oklab, var(--paper, #f7f3eb) 8%, transparent);
-  border: 1px solid color-mix(in oklab, var(--paper, #f7f3eb) 15%, transparent);
+  background: var(--setup-input-bg);
+  border: 1px solid var(--setup-border);
   border-radius: 6px;
-  color: var(--paper, #f7f3eb);
+  color: var(--setup-text);
   font-family: var(--mono, monospace);
   font-size: 12px;
   padding: 0 16px;
   cursor: pointer;
   transition: background 0.15s;
 }
-.chipAdd:hover { background: color-mix(in oklab, var(--paper, #f7f3eb) 12%, transparent); }
+.chipAdd:hover { background: var(--setup-input-focus); }
 
 .chips {
   display: flex;
@@ -392,12 +455,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: color-mix(in oklab, var(--accent, #7b2440) 18%, transparent);
-  border: 1px solid color-mix(in oklab, var(--accent, #7b2440) 35%, transparent);
+  background: color-mix(in oklab, var(--accent, #7b2440) 12%, var(--setup-bg));
+  border: 1px solid color-mix(in oklab, var(--accent, #7b2440) 30%, transparent);
   border-radius: 100px;
   padding: 4px 10px 4px 12px;
   font-size: 12px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 90%, transparent);
+  color: var(--setup-text);
 }
 
 .chipRemove {
@@ -406,11 +469,11 @@
   padding: 0;
   cursor: pointer;
   font-size: 10px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 40%, transparent);
+  color: var(--setup-muted);
   line-height: 1;
   transition: color 0.15s;
 }
-.chipRemove:hover { color: var(--paper, #f7f3eb); }
+.chipRemove:hover { color: var(--setup-text); }
 
 /* ── Section divider ────────────────────────────────────── */
 .sectionDivider {
@@ -418,9 +481,9 @@
   font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 35%, transparent);
+  color: var(--setup-muted);
   padding-bottom: 4px;
-  border-bottom: 1px solid color-mix(in oklab, var(--paper, #f7f3eb) 8%, transparent);
+  border-bottom: 1px solid var(--setup-border2);
   margin-top: 6px;
 }
 
@@ -445,27 +508,27 @@
   gap: 12px;
   margin-top: 36px;
   padding-top: 28px;
-  border-top: 1px solid color-mix(in oklab, var(--paper, #f7f3eb) 8%, transparent);
+  border-top: 1px solid var(--setup-border2);
 }
 
 .prevBtn {
   background: none;
-  border: 1px solid color-mix(in oklab, var(--paper, #f7f3eb) 15%, transparent);
+  border: 1px solid var(--setup-border);
   border-radius: 8px;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 60%, transparent);
+  color: var(--setup-muted);
   font-size: 13px;
   padding: 10px 20px;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
-.prevBtn:hover { border-color: color-mix(in oklab, var(--paper, #f7f3eb) 35%, transparent); color: var(--paper, #f7f3eb); }
+.prevBtn:hover { border-color: var(--setup-border); color: var(--setup-text); }
 .prevBtn:disabled { opacity: 0.4; cursor: default; }
 
 .skipBtn {
   margin-left: auto;
   background: none;
   border: none;
-  color: color-mix(in oklab, var(--paper, #f7f3eb) 35%, transparent);
+  color: var(--setup-muted);
   font-family: var(--mono, monospace);
   font-size: 12px;
   letter-spacing: 0.03em;
@@ -473,14 +536,14 @@
   padding: 10px 0;
   transition: color 0.15s;
 }
-.skipBtn:hover { color: color-mix(in oklab, var(--paper, #f7f3eb) 65%, transparent); }
+.skipBtn:hover { color: var(--setup-text); }
 .skipBtn:disabled { opacity: 0.4; cursor: default; }
 
 .nextBtn {
   background: var(--accent, #7b2440);
   border: none;
   border-radius: 8px;
-  color: var(--paper, #f7f3eb);
+  color: #fff;
   font-size: 14px;
   font-weight: 500;
   padding: 11px 28px;
@@ -497,7 +560,6 @@
   .body {
     grid-template-columns: 1fr;
     padding: 32px 18px;
-    gap: 0;
   }
 
   .stepNav {

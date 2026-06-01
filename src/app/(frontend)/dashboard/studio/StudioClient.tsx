@@ -68,19 +68,36 @@ function buildSrcDoc(html: string) {
 </body></html>`
 }
 
-/* Match a field label to portfolioData using keyword heuristics. */
+/* Match a field label to portfolioData using keyword heuristics.
+   Called once per field on first editor:outline — kept intentionally simple. */
 function resolveFieldValue(label: string, pd: PortfolioData): string | null {
-  const l = label.toLowerCase()
+  const l = label.toLowerCase().trim()
   const fullName = [pd.firstName, pd.lastName].filter(Boolean).join(' ')
-  if ((l.includes('name') && !l.includes('company') && !l.includes('employer') && !l.includes('institution')) || l === 'full name') return fullName || null
+
+  // Full name (must check before single "name" to avoid partial matches)
+  if (l === 'name' || l === 'full name' || l === 'your name') return fullName || null
+  if (l.includes('name') && !l.includes('company') && !l.includes('employer') && !l.includes('institution') && !l.includes('project') && !l.includes('course')) return fullName || null
   if (l.includes('first') && l.includes('name')) return pd.firstName || null
-  if (l.includes('last') && l.includes('name')) return pd.lastName || null
-  if (l.includes('headline') || l.includes('tagline') || (l.includes('title') && !l.includes('job') && !l.includes('project') && !l.includes('section'))) return pd.headline || null
+  if (l.includes('last')  && l.includes('name')) return pd.lastName  || null
+
+  // Headline / role / tagline
+  if (l === 'headline' || l === 'tagline' || l === 'role' || l === 'position' || l === 'job title') return pd.headline || null
+  if (l.includes('headline') || l.includes('tagline')) return pd.headline || null
+  if (l.includes('role') || l.includes('position')) return pd.headline || null
+  if (l.includes('title') && !l.includes('project') && !l.includes('section') && !l.includes('page') && !l.includes('work')) return pd.headline || null
+
+  // Bio / about
+  if (l === 'bio' || l === 'about' || l === 'summary' || l === 'introduction' || l === 'description') return pd.bio || null
   if (l.includes('about') || l.includes('bio') || l.includes('summary') || l.includes('introduction')) return pd.bio || null
+
+  // Contact
   if (l.includes('email')) return pd.email || null
   if (l.includes('phone') || l.includes('tel') || l.includes('mobile')) return pd.phone || null
+  if (l === 'location' || l === 'city' || l === 'address' || l === 'based in') return pd.location || null
   if (l.includes('location') || l.includes('city') || l.includes('address')) return pd.location || null
-  if (l.includes('website') || l === 'url' || l === 'web') return pd.website || null
+  if (l === 'website' || l === 'url' || l === 'web' || l === 'site') return pd.website || null
+  if (l.includes('website') || l.includes('personal url')) return pd.website || null
+
   return null
 }
 
@@ -190,11 +207,16 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
     }
   }, [post])
 
-  /* First-run portfolio data injection */
+  /* First-run portfolio data injection.
+     Only runs when there is no saved HTML snapshot yet (fresh template).
+     Once the auto-save fires the snapshot is permanent — no need to inject again. */
   const injectPortfolioData = useCallback((incoming: OutlineSection[]) => {
     if (!portfolioData || didInject.current) return
-    const lsKey = portfolioId ? `studio_injected_${portfolioId}` : 'studio_injected'
-    try { if (localStorage.getItem(lsKey)) return } catch { /* ignore */ }
+    // If we already have a saved snapshot the user's data is baked in — skip.
+    if (hasHtml) return
+    // Require at least one non-empty value so we don't fire with blank data.
+    const hasContent = portfolioData.firstName || portfolioData.headline || portfolioData.bio || portfolioData.email
+    if (!hasContent) return
 
     for (const section of incoming) {
       for (const field of section.fields) {
@@ -202,10 +224,8 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
         if (val) post({ type: 'editor:setField', id: field.id, value: val })
       }
     }
-
     didInject.current = true
-    try { localStorage.setItem(lsKey, '1') } catch { /* ignore */ }
-  }, [portfolioData, portfolioId, post])
+  }, [portfolioData, hasHtml, post])
 
   /* Inbound canvas events */
   useEffect(() => {

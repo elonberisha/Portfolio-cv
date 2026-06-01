@@ -71,6 +71,7 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   // Step 1 — personal
   const [firstName, setFirstName] = useState(initial.firstName)
@@ -193,7 +194,7 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
 
   // ── Render ─────────────────────────────────────────────────
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-theme={theme}>
       {/* ── Progress bar ────────────────────────────── */}
       <div className={styles.progressBar}>
         <div className={styles.progressFill} style={{ width: `${pct}%` }} />
@@ -206,9 +207,20 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
           <span className={styles.tbDivider}>›</span>
           <span className={styles.tbTitle}>Portfolio setup</span>
         </div>
-        <button type="button" className={styles.skipAll} onClick={goToStudio}>
-          Skip all &rarr;
-        </button>
+        <div className={styles.tbRight}>
+          <button
+            type="button"
+            className={styles.themeToggle}
+            onClick={() => setTheme((t) => t === 'light' ? 'dark' : 'light')}
+            title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? '☽' : '☀'}
+          </button>
+          <button type="button" className={styles.skipAll} onClick={goToStudio}>
+            Skip all &rarr;
+          </button>
+        </div>
       </header>
 
       <div className={styles.body}>
