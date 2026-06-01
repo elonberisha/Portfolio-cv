@@ -14,6 +14,11 @@ export default async function StudioPage() {
   // No template chosen yet — send them to pick one first.
   if (!portfolio || !portfolio.template) redirect('/templates?onboarding=1')
 
+  // Step 1 of setup (bio / headline) must be saved before the studio opens.
+  // Without it the template canvas has no personal content to inject.
+  const setupDone = !!(portfolio.bio?.trim() || portfolio.headline?.trim())
+  if (!setupDone) redirect('/dashboard/setup')
+
   const template = portfolio.template
   const templateName = template && typeof template === 'object' ? (template as any).name : null
   const templateSlug = template && typeof template === 'object' ? (template as any).slug : null

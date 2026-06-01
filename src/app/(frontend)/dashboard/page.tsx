@@ -38,6 +38,7 @@ export default async function DashboardPage() {
   const cvSource = (cv?.source as 'builder' | 'upload') || null
   const cvFileUrl = cv?.file && typeof cv.file === 'object' ? (cv.file as any).url : null
   const isPublished = Boolean(portfolio.published)
+  const setupDone = !!(portfolio.bio?.trim() || portfolio.headline?.trim())
 
   return (
     <main className={styles.dashboard}>
@@ -100,9 +101,17 @@ export default async function DashboardPage() {
           <div className={styles.colBody}>
             <h2>{templateName || 'Your template'}</h2>
             <p>Edit your page in the studio — text, cards, images, layout.</p>
+            {!setupDone && (
+              <p className={styles.setupNotice}>
+                ⚠ Complete step 1 (your bio / headline) before the studio can personalise your template.
+              </p>
+            )}
             <div className={styles.colActions}>
-              <Link href="/dashboard/studio" className={styles.primary}>
-                Edit in studio {'->'}
+              <Link
+                href={setupDone ? '/dashboard/studio' : '/dashboard/setup'}
+                className={styles.primary}
+              >
+                {setupDone ? 'Edit in studio ->' : 'Complete setup ->'}
               </Link>
               <Link href="/templates" className={styles.secondary}>
                 Change template

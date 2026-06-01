@@ -180,7 +180,7 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
     else router.push('/dashboard/studio')
   }
 
-  function goToStudio() { router.push('/dashboard/studio') }
+  function goToDashboard() { router.push('/dashboard') }
 
   // ── Progress ──────────────────────────────────────────────
   const pct = ((step - 1) / 4) * 100
@@ -217,8 +217,8 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
           >
             {theme === 'light' ? '☽' : '☀'}
           </button>
-          <button type="button" className={styles.skipAll} onClick={goToStudio}>
-            Skip all &rarr;
+          <button type="button" className={styles.skipAll} onClick={goToDashboard}>
+            &larr; Dashboard
           </button>
         </div>
       </header>
@@ -254,7 +254,7 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
           {step === 1 && (
             <div className={styles.formCard}>
               <h2 className={styles.stepHeading}>Tell us about you</h2>
-              <p className={styles.stepDesc}>This becomes the personal section of your portfolio. All fields are optional.</p>
+              <p className={styles.stepDesc}>Fill in at least your name or headline — the studio uses this to personalise your template. Steps 2–5 are optional and can be done later.</p>
 
               <div className={styles.row2}>
                 <Field label="First name">
@@ -689,11 +689,13 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
                 &larr; Back
               </button>
             )}
-            <button type="button" className={styles.skipBtn} onClick={handleSkip} disabled={saving}>
-              Skip for now &rarr;
-            </button>
+            {step > 1 && (
+              <button type="button" className={styles.skipBtn} onClick={handleSkip} disabled={saving}>
+                Skip for now &rarr;
+              </button>
+            )}
             <button type="button" className={styles.nextBtn} onClick={handleNext} disabled={saving}>
-              {saving ? 'Saving…' : step === 5 ? 'Finish & go to studio ✦' : 'Save & next →'}
+              {saving ? 'Saving…' : step === 5 ? 'Finish & go to studio ✦' : step === 1 ? 'Save & continue →' : 'Save & next →'}
             </button>
           </div>
         </main>
