@@ -7,6 +7,7 @@ import StudioSidebar, {
   type OutlineSection,
   type StudioTab,
 } from './StudioSidebar'
+import StudioLoader from './StudioLoader'
 import styles from './studio.module.css'
 
 /* Patch a single field's value wherever it lives in the section tree. */
@@ -68,6 +69,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
   const [hasHtml] = useState(Boolean(initialHtml.trim()))
   const [sections, setSections] = useState<OutlineSection[]>([])
   const [published, setPublished] = useState(details.published)
+  const [loading, setLoading] = useState(true)   // shown until editor:outline fires
 
   /* UI state — what makes the new UX work */
   const [tab, setTab] = useState<StudioTab>('content')
@@ -174,6 +176,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
         requestImageFor(d.id)
       } else if (d.type === 'editor:outline' && Array.isArray(d.sections)) {
         setSections(d.sections)
+        setLoading(false)   // template is ready — dismiss the loader
       } else if (d.type === 'editor:fieldInput' && d.id) {
         setSections((prev) => patchField(prev, d.id, d.value))
       } else if (d.type === 'editor:select' && d.id) {
@@ -287,6 +290,9 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
         />
 
         <main className={styles.canvasWrap}>
+          {/* Loading overlay — visible until editor:outline fires */}
+          <StudioLoader show={loading} />
+
           {(hasHtml || templateSlug) ? (
             <div
               className={styles.deviceHolder}
