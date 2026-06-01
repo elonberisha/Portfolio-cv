@@ -55,32 +55,41 @@ export async function POST(request: Request) {
 
   const portfolio = existingPortfolios.docs[0]
 
-  // Snapshot the chosen template's rendered HTML so the studio can edit it.
-  // Fails soft (empty string) if headless rendering isn't available.
-  const pageHtml = await snapshotTemplateHtml(templateConfig.slug)
-  const snapshotData = pageHtml
-    ? { pageHtml, templateSnapshotAt: new Date().toISOString() }
-    : {}
-
+  // Save template association immediately — no snapshot yet, so redirect is instant.
+  let portfolioId: string | number
   if (portfolio) {
     await payload.update({
       collection: 'portfolios',
       id: portfolio.id,
-      data: { template: template.id, ...snapshotData },
+      // Clear stale pageHtml when the user switches templates.
+      data: { template: template.id, pageHtml: null, templateSnapshotAt: null },
       overrideAccess: true,
     })
+    portfolioId = portfolio.id
   } else {
-    await payload.create({
+    const created = await payload.create({
       collection: 'portfolios',
-      data: {
-        owner: user.id,
-        template: template.id,
-        published: false,
-        ...snapshotData,
-      },
+      data: { owner: user.id, template: template.id, published: false },
       overrideAccess: true,
     })
+    portfolioId = created.id
   }
+
+  // Fire snapshot in background — does NOT block the redirect.
+  // If puppeteer is unavailable it returns '' and nothing is written.
+  void snapshotTemplateHtml(templateConfig.slug).then(async (pageHtml) => {
+    if (!pageHtml) return
+    try {
+      await payload.update({
+        collection: 'portfolios',
+        id: portfolioId,
+        data: { pageHtml, templateSnapshotAt: new Date().toISOString() },
+        overrideAccess: true,
+      })
+    } catch {
+      // Best-effort — studio live-iframe fallback handles the no-snapshot case.
+    }
+  })
 
   return NextResponse.json({
     ok: true,

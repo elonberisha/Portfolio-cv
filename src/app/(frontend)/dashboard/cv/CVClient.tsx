@@ -111,6 +111,74 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
     }
   }
 
+  async function grabFromPortfolio() {
+    setSaving(true)
+    setMsg('')
+    try {
+      const res = await fetch('/api/portfolio', { credentials: 'include' })
+      if (!res.ok) { setMsg('Could not load portfolio data.'); return }
+      const p = await res.json()
+
+      setData((prev) => {
+        // Merge personal info — only overwrite empty fields
+        const pi: PersonalInfo = { ...prev.personalInfo }
+        if (!pi.firstName  && p.firstName)  pi.firstName  = p.firstName
+        if (!pi.lastName   && p.lastName)   pi.lastName   = p.lastName
+        if (!pi.email      && p.email)      pi.email      = p.email
+        if (!pi.headline   && p.headline)   pi.headline   = p.headline
+        if (!pi.about      && p.bio)        pi.about      = p.bio
+
+        // Map portfolio experience[] → workExperience[]
+        const workFromPortfolio: Work[] = (p.experience ?? []).map((e: any) => ({
+          jobTitle:    e.role        ?? '',
+          employer:    e.company     ?? '',
+          startDate:   e.startDate ? new Date(e.startDate).toISOString().slice(0, 10) : '',
+          endDate:     e.endDate   ? new Date(e.endDate).toISOString().slice(0, 10)   : '',
+          description: e.description ?? '',
+          current:     !e.endDate,
+        }))
+
+        // Map portfolio education[] → education[]
+        const eduFromPortfolio: Edu[] = (p.education ?? []).map((e: any) => ({
+          qualification: e.degree      ?? '',
+          institution:   e.institution ?? '',
+          startDate:     e.startDate   ?? '',
+          endDate:       e.endDate     ?? '',
+        }))
+
+        // Map portfolio languages[]
+        const langFromPortfolio: Lang[] = (p.languages ?? []).map((l: any) => ({
+          language: l.language    ?? '',
+          level:    l.proficiency === 'native' ? '' : (l.proficiency ?? ''),
+          mother:   l.proficiency === 'native',
+        }))
+
+        // Skills → otherSkills string (comma-separated) if empty
+        const skillStr = (p.skills ?? []).map((s: any) => s.name ?? '').filter(Boolean).join(', ')
+
+        return {
+          ...prev,
+          personalInfo: pi,
+          workExperience: workFromPortfolio.length
+            ? workFromPortfolio
+            : (prev.workExperience ?? []),
+          education: eduFromPortfolio.length
+            ? eduFromPortfolio
+            : (prev.education ?? []),
+          languageSkills: langFromPortfolio.length
+            ? langFromPortfolio
+            : (prev.languageSkills ?? []),
+          otherSkills: skillStr || prev.otherSkills || '',
+        }
+      })
+      setMsg('Portfolio data imported. Review and save.')
+    } catch {
+      setMsg('Could not load portfolio data.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function uploadPdf(file: File) {
     setSaving(true)
     setMsg('')
@@ -296,6 +364,15 @@ export default function CVClient({ initial }: { initial: CVInitial }) {
             <div className={styles.actions}>
               <button type="button" className={styles.save} onClick={saveBuilder} disabled={saving}>
                 {saving ? 'Saving…' : 'Save CV'}
+              </button>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={grabFromPortfolio}
+                disabled={saving}
+                title="Pull your name, bio, experience, education and skills from the portfolio setup form"
+              >
+                ↓ Grab from portfolio
               </button>
               {msg && <span className={styles.msg}>{msg}</span>}
             </div>

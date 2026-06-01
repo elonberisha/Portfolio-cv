@@ -4,6 +4,33 @@ import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
 
+export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const payload = await getPayload({ config })
+  const res = await payload.find({
+    collection: 'portfolios',
+    where: { owner: { equals: user.id } },
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+  })
+  const p = res.docs[0] ?? null
+  const u = user as any
+  return NextResponse.json({
+    firstName:  u.firstName  ?? '',
+    lastName:   u.lastName   ?? '',
+    email:      u.email      ?? '',
+    headline:   p?.headline  ?? '',
+    bio:        p?.bio       ?? '',
+    experience: p?.experience ?? [],
+    education:  p?.education  ?? [],
+    languages:  p?.languages  ?? [],
+    skills:     p?.skills     ?? [],
+  })
+}
+
 const FACULTY_GROUPS = [
   'tech',
   'business',
