@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 import {
@@ -216,7 +215,6 @@ function TemplatePreview({ template }: { template: TemplateCatalogItem }) {
 
 // ── Main chooser ───────────────────────────────────────────
 export default function TemplateChooser({ activeSlugs }: { activeSlugs?: string[] }) {
-  const router = useRouter()
   const [filter, setFilter] = useState<FilterValue>('all')
   const [selectingSlug, setSelectingSlug] = useState('')
   const [selectingName, setSelectingName] = useState('')
@@ -252,7 +250,8 @@ export default function TemplateChooser({ activeSlugs }: { activeSlugs?: string[
       })
 
       if (res.status === 401) {
-        router.push(`/signup?template=${slug}`)
+        // Not logged in — hard-navigate so auth cookie is re-evaluated
+        window.location.href = `/signup?template=${slug}`
         return
       }
 
@@ -265,9 +264,10 @@ export default function TemplateChooser({ activeSlugs }: { activeSlugs?: string[
         return
       }
 
-      // Keep overlay visible until navigation completes.
-      router.push(data.redirect || `/dashboard?template=${slug}`)
-      router.refresh()
+      // Hard navigation keeps the overlay visible until the new page actually
+      // loads. Using router.push + router.refresh() can race and reset client
+      // state, which makes the overlay vanish without navigating.
+      window.location.href = data.redirect || `/dashboard?template=${slug}`
     } catch {
       setMessage('Could not select this template. Please try again.')
       setSelectingSlug('')
