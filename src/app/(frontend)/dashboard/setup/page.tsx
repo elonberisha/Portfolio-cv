@@ -12,8 +12,8 @@ export default async function SetupPage() {
   const portfolio = await getMyPortfolio(user.id)
   if (!portfolio || !portfolio.template) redirect('/templates?onboarding=1')
 
-  // If the student already filled bio or headline they have been through setup — skip.
-  if (portfolio.bio || portfolio.headline) redirect('/dashboard/studio')
+  // If step 1 was already submitted, skip the form.
+  if ((portfolio as any).setupDone) redirect('/dashboard/studio')
 
   const u = user as any
   return (

@@ -46,6 +46,8 @@ export async function PATCH(request: Request) {
 
   if ('headline' in body) portfolioData.headline = str(body.headline)
   if ('bio' in body) portfolioData.bio = str(body.bio)
+  // Mark setup as started the moment step 1 is submitted (even if all fields empty)
+  if ('headline' in body || 'bio' in body) portfolioData.setupDone = true
   if ('email' in body) portfolioData.contactEmail = str(body.email)
   if ('phone' in body) portfolioData.phone = str(body.phone)
   if ('location' in body) portfolioData.location = str(body.location)

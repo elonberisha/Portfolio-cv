@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   const cvSource = (cv?.source as 'builder' | 'upload') || null
   const cvFileUrl = cv?.file && typeof cv.file === 'object' ? (cv.file as any).url : null
   const isPublished = Boolean(portfolio.published)
-  const setupDone = !!(portfolio.bio?.trim() || portfolio.headline?.trim())
+  const setupDone = !!(portfolio as any).setupDone
 
   return (
     <main className={styles.dashboard}>

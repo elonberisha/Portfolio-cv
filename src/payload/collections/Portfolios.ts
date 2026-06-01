@@ -55,6 +55,18 @@ export const Portfolios: CollectionConfig = {
       },
     },
     {
+      // Set to true the moment the student clicks "Save & continue" on
+      // setup step 1 — regardless of whether they filled any fields.
+      // Guards studio access: without this flag the CMS won't open.
+      name: 'setupDone',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: 'Student has submitted setup step 1',
+      },
+    },
+    {
       // The editable page document — a sanitized HTML snapshot of the chosen
       // template that the generic studio editor mutates. Single source of
       // truth for the student's live page.
