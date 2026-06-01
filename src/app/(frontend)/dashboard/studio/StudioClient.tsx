@@ -43,12 +43,20 @@ function patchHref(sections: OutlineSection[], id: string, href: string): Outlin
 type Device = 'desktop' | 'tablet' | 'mobile'
 const DEVICE_W: Record<Device, number | null> = { desktop: null, tablet: 820, mobile: 390 }
 
+export type PortfolioData = {
+  firstName: string; lastName: string; email: string
+  headline: string; bio: string; phone: string; location: string; website: string
+  experience: any[]; education: any[]; skills: any[]
+}
+
 type Props = {
   initialHtml: string
   templateName: string | null
   templateSlug: string | null
   details: SidebarInitial
   subdomain?: string | null
+  portfolioData?: PortfolioData | null
+  portfolioId?: string
 }
 
 function buildSrcDoc(html: string) {
@@ -60,10 +68,27 @@ function buildSrcDoc(html: string) {
 </body></html>`
 }
 
-export default function StudioClient({ initialHtml, templateName, templateSlug, details, subdomain }: Props) {
+/* Match a field label to portfolioData using keyword heuristics. */
+function resolveFieldValue(label: string, pd: PortfolioData): string | null {
+  const l = label.toLowerCase()
+  const fullName = [pd.firstName, pd.lastName].filter(Boolean).join(' ')
+  if ((l.includes('name') && !l.includes('company') && !l.includes('employer') && !l.includes('institution')) || l === 'full name') return fullName || null
+  if (l.includes('first') && l.includes('name')) return pd.firstName || null
+  if (l.includes('last') && l.includes('name')) return pd.lastName || null
+  if (l.includes('headline') || l.includes('tagline') || (l.includes('title') && !l.includes('job') && !l.includes('project') && !l.includes('section'))) return pd.headline || null
+  if (l.includes('about') || l.includes('bio') || l.includes('summary') || l.includes('introduction')) return pd.bio || null
+  if (l.includes('email')) return pd.email || null
+  if (l.includes('phone') || l.includes('tel') || l.includes('mobile')) return pd.phone || null
+  if (l.includes('location') || l.includes('city') || l.includes('address')) return pd.location || null
+  if (l.includes('website') || l === 'url' || l === 'web') return pd.website || null
+  return null
+}
+
+export default function StudioClient({ initialHtml, templateName, templateSlug, details, subdomain, portfolioData, portfolioId }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingImgId = useRef<string | null>(null)
+  const didInject = useRef(false)
 
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [hasHtml] = useState(Boolean(initialHtml.trim()))
@@ -71,12 +96,12 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
   const [published, setPublished] = useState(details.published)
   const [loading, setLoading] = useState(true)   // shown until editor:outline fires
 
-  /* UI state — what makes the new UX work */
+  /* UI state */
   const [tab, setTab] = useState<StudioTab>('content')
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null)
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true) // drawer state on tablet/mobile
-  const [collapsed, setCollapsed] = useState(false)     // full-width canvas on desktop
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [collapsed, setCollapsed] = useState(false)
   const [device, setDevice] = useState<Device>('desktop')
 
   /* Default the focused section to the first one we receive. */
@@ -84,7 +109,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
     if (!activeSectionId && sections.length) setActiveSectionId(sections[0].id)
   }, [sections, activeSectionId])
 
-  /* ── Persistence ─────────────────────────────────────── */
+  /* Persistence */
   const save = useCallback(async (html: string) => {
     setStatus('saving')
     try {
@@ -115,7 +140,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
     }
   }, [published])
 
-  /* ── Canvas messaging (protocol preserved + extended) ── */
+  /* Canvas messaging */
   const post = useCallback((msg: Record<string, unknown>) => {
     frameRef.current?.contentWindow?.postMessage(msg, '*')
   }, [])
@@ -142,7 +167,6 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
       post({ type: 'editor:reorderItem', listId, from, to }),
     [post],
   )
-  /* Scroll the canvas to a block + flash it — used when you pick a section. */
   const focusOnCanvas = useCallback((id: string) => post({ type: 'editor:focus', id }), [post])
   const requestImageFor = useCallback((id: string) => {
     pendingImgId.current = id
@@ -166,7 +190,24 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
     }
   }, [post])
 
-  /* ── Inbound canvas events ───────────────────────────── */
+  /* First-run portfolio data injection */
+  const injectPortfolioData = useCallback((incoming: OutlineSection[]) => {
+    if (!portfolioData || didInject.current) return
+    const lsKey = portfolioId ? `studio_injected_${portfolioId}` : 'studio_injected'
+    try { if (localStorage.getItem(lsKey)) return } catch { /* ignore */ }
+
+    for (const section of incoming) {
+      for (const field of section.fields) {
+        const val = resolveFieldValue(field.label, portfolioData)
+        if (val) post({ type: 'editor:setField', id: field.id, value: val })
+      }
+    }
+
+    didInject.current = true
+    try { localStorage.setItem(lsKey, '1') } catch { /* ignore */ }
+  }, [portfolioData, portfolioId, post])
+
+  /* Inbound canvas events */
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       const d = e.data || {}
@@ -176,11 +217,11 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
         requestImageFor(d.id)
       } else if (d.type === 'editor:outline' && Array.isArray(d.sections)) {
         setSections(d.sections)
-        setLoading(false)   // template is ready — dismiss the loader
+        setLoading(false)   // template is ready - dismiss the loader
+        injectPortfolioData(d.sections)
       } else if (d.type === 'editor:fieldInput' && d.id) {
         setSections((prev) => patchField(prev, d.id, d.value))
       } else if (d.type === 'editor:select' && d.id) {
-        /* User clicked an element on the template → open its section + highlight. */
         setSelectedFieldId(d.id)
         if (d.sectionId) { setActiveSectionId(d.sectionId); setSidebarOpen(true) }
         if (d.kind && (d.kind === 'link' || d.kind === 'button' || d.kind === 'nav')) {
@@ -190,10 +231,10 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [save, requestImageFor])
+  }, [save, requestImageFor, injectPortfolioData])
 
   const deviceW = DEVICE_W[device]
-  const statusText = status === 'saving' ? 'Saving…' : status === 'saved' ? 'All changes saved' : 'Auto-saves'
+  const statusText = status === 'saving' ? 'Saving...' : status === 'saved' ? 'All changes saved' : 'Auto-saves'
 
   return (
     <div
@@ -201,7 +242,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
       data-collapsed={collapsed}
       data-drawer-open={sidebarOpen}
     >
-      {/* ── Top command bar ─────────────────────────────── */}
+      {/* Top command bar */}
       <header className={styles.topbar}>
         <div className={styles.tbLeft}>
           <button
@@ -259,7 +300,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
         </div>
       </header>
 
-      {/* ── Body: sidebar + canvas ──────────────────────── */}
+      {/* Body: sidebar + canvas */}
       <div className={styles.body}>
         {/* Scrim for drawer mode (tablet / mobile) */}
         <div
@@ -290,7 +331,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
         />
 
         <main className={styles.canvasWrap}>
-          {/* Loading overlay — visible until editor:outline fires */}
+          {/* Loading overlay - visible until editor:outline fires */}
           <StudioLoader show={loading} />
 
           {(hasHtml || templateSlug) ? (
@@ -313,8 +354,6 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
                   srcDoc={buildSrcDoc(initialHtml)}
                 />
               ) : (
-                /* No snapshot yet — load the live template and inject editor-runtime
-                   via the snippet in preview.html (auto-loads when window !== parent). */
                 <iframe
                   ref={frameRef}
                   className={styles.canvas}
@@ -332,7 +371,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
             </div>
           )}
 
-          {/* Floating hint — click-to-edit affordance, dismissable */}
+          {/* Floating hint - click-to-edit affordance, dismissable */}
           <CanvasHint />
 
           {/* Reopen tab when collapsed on desktop */}

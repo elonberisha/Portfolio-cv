@@ -23,6 +23,21 @@ export default async function StudioPage() {
   }
 
   const subdomain = (user as any).subdomain ?? null
+  const u = user as any
+
+  const portfolioData = {
+    firstName:  u.firstName  ?? '',
+    lastName:   u.lastName   ?? '',
+    email:      u.email      ?? '',
+    headline:   portfolio.headline   ?? '',
+    bio:        portfolio.bio        ?? '',
+    phone:      (portfolio as any).phone    ?? '',
+    location:   (portfolio as any).location ?? '',
+    website:    (portfolio as any).website  ?? '',
+    experience: (portfolio.experience as any[]) ?? [],
+    education:  (portfolio.education  as any[]) ?? [],
+    skills:     (portfolio.skills     as any[]) ?? [],
+  }
 
   return (
     <StudioClient
@@ -31,6 +46,8 @@ export default async function StudioPage() {
       templateSlug={templateSlug}
       details={details}
       subdomain={subdomain}
+      portfolioData={portfolioData}
+      portfolioId={String(portfolio.id)}
     />
   )
 }
