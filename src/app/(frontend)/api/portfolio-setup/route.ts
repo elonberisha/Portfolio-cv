@@ -46,8 +46,9 @@ export async function PATCH(request: Request) {
 
   if ('headline' in body) portfolioData.headline = str(body.headline)
   if ('bio' in body) portfolioData.bio = str(body.bio)
-  // Mark setup as started the moment step 1 is submitted (even if all fields empty)
-  if ('headline' in body || 'bio' in body) portfolioData.setupDone = true
+  // Flag that step 1 was submitted (even if all fields empty)
+  const isStep1 = 'headline' in body || 'bio' in body
+  if (isStep1) portfolioData.setupDone = true
   if ('email' in body) portfolioData.contactEmail = str(body.email)
   if ('phone' in body) portfolioData.phone = str(body.phone)
   if ('location' in body) portfolioData.location = str(body.location)
@@ -153,6 +154,14 @@ export async function PATCH(request: Request) {
     overrideAccess: true,
   })
   const portfolio = existing.docs[0]
+
+  // First time step 1 is saved: wipe the template snapshot so the studio
+  // loads a fresh template and injects the form data without the old demo HTML
+  // getting in the way. The auto-save will create a new snapshot with real data.
+  if (isStep1 && !(portfolio as any)?.setupDone) {
+    portfolioData.pageHtml = null
+    portfolioData.templateSnapshotAt = null
+  }
 
   if (portfolio) {
     await payload.update({

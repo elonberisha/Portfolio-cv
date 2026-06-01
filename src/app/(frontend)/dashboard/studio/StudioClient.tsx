@@ -106,6 +106,13 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingImgId = useRef<string | null>(null)
   const didInject = useRef(false)
+  // Key tracks whether form data was ever injected for this portfolio+template combo.
+  // Using localStorage so it persists across page loads — once injected + auto-saved,
+  // the real HTML is the source of truth and we must not overwrite it.
+  const injectionKey = portfolioId && templateSlug ? `inj_${portfolioId}_${templateSlug}` : null
+  const alreadyInjected = useRef(
+    typeof window !== 'undefined' && !!injectionKey && localStorage.getItem(injectionKey) === '1'
+  )
 
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [hasHtml] = useState(Boolean(initialHtml.trim()))
@@ -208,24 +215,29 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
   }, [post])
 
   /* First-run portfolio data injection.
-     Only runs when there is no saved HTML snapshot yet (fresh template).
-     Once the auto-save fires the snapshot is permanent — no need to inject again. */
+     Runs the first time this portfolio+template combo is opened, regardless of
+     whether a snapshot exists. Uses a localStorage key so it only fires once —
+     after injection the auto-save bakes the real data into pageHtml and future
+     visits load that directly without needing to re-inject. */
   const injectPortfolioData = useCallback((incoming: OutlineSection[]) => {
-    if (!portfolioData || didInject.current) return
-    // If we already have a saved snapshot the user's data is baked in — skip.
-    if (hasHtml) return
+    if (!portfolioData || didInject.current || alreadyInjected.current) return
     // Require at least one non-empty value so we don't fire with blank data.
     const hasContent = portfolioData.firstName || portfolioData.headline || portfolioData.bio || portfolioData.email
     if (!hasContent) return
 
+    let injected = 0
     for (const section of incoming) {
       for (const field of section.fields) {
         const val = resolveFieldValue(field.label, portfolioData)
-        if (val) post({ type: 'editor:setField', id: field.id, value: val })
+        if (val) { post({ type: 'editor:setField', id: field.id, value: val }); injected++ }
       }
     }
     didInject.current = true
-  }, [portfolioData, hasHtml, post])
+    // Mark as done so subsequent visits don't overwrite any edits the user has made
+    if (injected > 0 && injectionKey) {
+      try { localStorage.setItem(injectionKey, '1') } catch { /* private browsing */ }
+    }
+  }, [portfolioData, post, injectionKey])
 
   /* Inbound canvas events */
   useEffect(() => {
