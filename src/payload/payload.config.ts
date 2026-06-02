@@ -18,12 +18,26 @@ import { seedDatabase } from './seed'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-// Use SQLite for local dev, Postgres (Supabase) for production
+// Database adapter selection:
+//   - DATABASE_URI set  → PostgreSQL (Supabase/Neon). Used in BOTH local dev
+//     and production for full dev/prod parity.
+//   - DATABASE_URI unset → SQLite fallback (no-setup local scratch DB).
+//
+// Schema strategy with Postgres:
+//   - dev  (NODE_ENV !== 'production'): push = true → schema auto-syncs, fast
+//     iteration, no migration files needed.
+//   - prod (NODE_ENV === 'production'): push = false → schema changes apply
+//     ONLY through committed migrations (`npm run migrate`). This is what kills
+//     the schema-drift class of bug — production never silently diverges.
+const isProd = process.env.NODE_ENV === 'production'
+
 const dbAdapter = process.env.DATABASE_URI
   ? postgresAdapter({
       pool: {
         connectionString: process.env.DATABASE_URI,
       },
+      migrationDir: path.resolve(dirname, 'migrations'),
+      push: !isProd,
     })
   : sqliteAdapter({
       client: {
