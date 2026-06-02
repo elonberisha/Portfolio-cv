@@ -502,6 +502,17 @@
 .linkRow .input { flex: 1; }
 
 /* ── Navigation ─────────────────────────────────────────── */
+.saveError {
+  margin: 28px 0 0;
+  padding: 11px 14px;
+  background: color-mix(in oklab, #d35234 12%, var(--setup-bg, #fff));
+  border: 1px solid color-mix(in oklab, #d35234 40%, transparent);
+  border-radius: 8px;
+  color: #b23a1f;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .navRow {
   display: flex;
   align-items: center;

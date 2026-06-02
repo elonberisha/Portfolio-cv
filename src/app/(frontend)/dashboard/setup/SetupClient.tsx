@@ -71,6 +71,7 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   // Step 1 — personal
@@ -124,16 +125,29 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
   }
 
   // ── Save & navigate ───────────────────────────────────────
-  const save = useCallback(async (payload: object, isFinal = false) => {
+  // Returns true only when the server confirms the save. Callers MUST check
+  // the result and not advance the step on a false return — otherwise a failed
+  // save looks identical to a successful one (the old silent-fail bug).
+  const save = useCallback(async (payload: object, isFinal = false): Promise<boolean> => {
     setSaving(true)
+    setSaveError('')
     try {
-      await fetch('/api/portfolio-setup', {
+      const res = await fetch('/api/portfolio-setup', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ ...payload, ...(isFinal ? { final: true } : {}) }),
       })
-    } catch { /* ignore */ } finally {
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setSaveError(data?.error || 'Could not save. Please try again.')
+        return false
+      }
+      return true
+    } catch {
+      setSaveError('Network error — check your connection and try again.')
+      return false
+    } finally {
       setSaving(false)
     }
   }, [])
@@ -168,11 +182,12 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
   }
 
   async function handleNext() {
-    if (step === 1) { await save(step1Payload()); setStep(2) }
-    else if (step === 2) { await save(step2Payload()); setStep(3) }
-    else if (step === 3) { await save(step3Payload()); setStep(4) }
-    else if (step === 4) { await save(step4Payload()); setStep(5) }
-    else if (step === 5) { await save(step5Payload(), true); router.push('/dashboard/studio') }
+    // Only advance when the save is confirmed by the server.
+    if (step === 1) { if (await save(step1Payload())) setStep(2) }
+    else if (step === 2) { if (await save(step2Payload())) setStep(3) }
+    else if (step === 3) { if (await save(step3Payload())) setStep(4) }
+    else if (step === 4) { if (await save(step4Payload())) setStep(5) }
+    else if (step === 5) { if (await save(step5Payload(), true)) router.push('/dashboard/studio') }
   }
 
   async function handleSkip() {
@@ -680,6 +695,13 @@ export default function SetupClient({ initial, facultyGroup }: Props) {
               ))}
               <button type="button" className={styles.addBtn} onClick={() => setLanguages((p) => [...p, newLang()])}>+ Add language</button>
             </div>
+          )}
+
+          {/* ── Save error ───────────────────────── */}
+          {saveError && (
+            <p className={styles.saveError} role="alert">
+              {saveError}
+            </p>
           )}
 
           {/* ── Navigation ───────────────────────── */}

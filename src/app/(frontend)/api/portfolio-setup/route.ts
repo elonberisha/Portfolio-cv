@@ -163,23 +163,36 @@ export async function PATCH(request: Request) {
     portfolioData.templateSnapshotAt = null
   }
 
-  if (portfolio) {
-    await payload.update({
-      collection: 'portfolios',
-      id: portfolio.id,
-      data: portfolioData,
-      overrideAccess: true,
-    })
-  } else {
-    await payload.create({
-      collection: 'portfolios',
-      data: { owner: user.id, published: false, ...portfolioData },
-      overrideAccess: true,
-    })
+  // Persist the portfolio. Surface failures instead of silently 200-ing —
+  // a schema/DB mismatch or validation error must reach the client so the
+  // form can show it and NOT advance as if the save worked.
+  try {
+    if (portfolio) {
+      await payload.update({
+        collection: 'portfolios',
+        id: portfolio.id,
+        data: portfolioData,
+        overrideAccess: true,
+      })
+    } else {
+      await payload.create({
+        collection: 'portfolios',
+        data: { owner: user.id, published: false, ...portfolioData },
+        overrideAccess: true,
+      })
+    }
+  } catch (err) {
+    console.error('[portfolio-setup] save failed:', err)
+    return NextResponse.json(
+      { error: 'Could not save your details. Please try again.' },
+      { status: 500 },
+    )
   }
 
-  // On final step: mark onboardingComplete + sync to CV
-  if (body.final) {
+  // On final step: mark onboardingComplete + sync to CV.
+  // Best-effort — the portfolio is already saved above, so a sync hiccup
+  // must not fail the request. Log it and move on.
+  if (body.final) try {
     await payload.update({
       collection: 'users',
       id: user.id,
@@ -231,6 +244,8 @@ export async function PATCH(request: Request) {
         })
       }
     }
+  } catch (err) {
+    console.error('[portfolio-setup] final sync failed (non-fatal):', err)
   }
 
   return NextResponse.json({ ok: true })
