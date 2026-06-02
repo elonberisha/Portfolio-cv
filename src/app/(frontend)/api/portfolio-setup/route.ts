@@ -49,7 +49,7 @@ export async function PATCH(request: Request) {
   // Flag that step 1 was submitted (even if all fields empty)
   const isStep1 = 'headline' in body || 'bio' in body
   if (isStep1) portfolioData.setupDone = true
-  if ('email' in body) portfolioData.contactEmail = str(body.email)
+  // email lives on the users table — no duplicate storage needed on portfolio
   if ('phone' in body) portfolioData.phone = str(body.phone)
   if ('location' in body) portfolioData.location = str(body.location)
   if ('website' in body) portfolioData.website = str(body.website)

@@ -68,51 +68,19 @@ function buildSrcDoc(html: string) {
 </body></html>`
 }
 
-/* Match a field label to portfolioData using keyword heuristics.
-   Called once per field on first editor:outline — kept intentionally simple. */
-function resolveFieldValue(label: string, pd: PortfolioData): string | null {
-  const l = label.toLowerCase().trim()
-  const fullName = [pd.firstName, pd.lastName].filter(Boolean).join(' ')
-
-  // Full name (must check before single "name" to avoid partial matches)
-  if (l === 'name' || l === 'full name' || l === 'your name') return fullName || null
-  if (l.includes('name') && !l.includes('company') && !l.includes('employer') && !l.includes('institution') && !l.includes('project') && !l.includes('course')) return fullName || null
-  if (l.includes('first') && l.includes('name')) return pd.firstName || null
-  if (l.includes('last')  && l.includes('name')) return pd.lastName  || null
-
-  // Headline / role / tagline
-  if (l === 'headline' || l === 'tagline' || l === 'role' || l === 'position' || l === 'job title') return pd.headline || null
-  if (l.includes('headline') || l.includes('tagline')) return pd.headline || null
-  if (l.includes('role') || l.includes('position')) return pd.headline || null
-  if (l.includes('title') && !l.includes('project') && !l.includes('section') && !l.includes('page') && !l.includes('work')) return pd.headline || null
-
-  // Bio / about
-  if (l === 'bio' || l === 'about' || l === 'summary' || l === 'introduction' || l === 'description') return pd.bio || null
-  if (l.includes('about') || l.includes('bio') || l.includes('summary') || l.includes('introduction')) return pd.bio || null
-
-  // Contact
-  if (l.includes('email')) return pd.email || null
-  if (l.includes('phone') || l.includes('tel') || l.includes('mobile')) return pd.phone || null
-  if (l === 'location' || l === 'city' || l === 'address' || l === 'based in') return pd.location || null
-  if (l.includes('location') || l.includes('city') || l.includes('address')) return pd.location || null
-  if (l === 'website' || l === 'url' || l === 'web' || l === 'site') return pd.website || null
-  if (l.includes('website') || l.includes('personal url')) return pd.website || null
-
-  return null
-}
 
 export default function StudioClient({ initialHtml, templateName, templateSlug, details, subdomain, portfolioData, portfolioId }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingImgId = useRef<string | null>(null)
-  const didInject = useRef(false)
-  // Key tracks whether form data was ever injected for this portfolio+template combo.
-  // Using localStorage so it persists across page loads — once injected + auto-saved,
-  // the real HTML is the source of truth and we must not overwrite it.
-  const injectionKey = portfolioId && templateSlug ? `inj_${portfolioId}_${templateSlug}` : null
-  const alreadyInjected = useRef(
-    typeof window !== 'undefined' && !!injectionKey && localStorage.getItem(injectionKey) === '1'
-  )
+
+  // Encode portfolio data as a base64 URL param for the preview iframe.
+  // Templates read window.__STUDENT__ (set by preview.html from ?d=) and
+  // override their demo PERSONAS so real student content renders immediately.
+  const studentParam = (() => {
+    if (!portfolioData || typeof window === 'undefined') return ''
+    try { return '&d=' + btoa(encodeURIComponent(JSON.stringify(portfolioData))) } catch { return '' }
+  })()
 
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [hasHtml] = useState(Boolean(initialHtml.trim()))
@@ -214,30 +182,11 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
     }
   }, [post])
 
-  /* First-run portfolio data injection.
-     Runs the first time this portfolio+template combo is opened, regardless of
-     whether a snapshot exists. Uses a localStorage key so it only fires once —
-     after injection the auto-save bakes the real data into pageHtml and future
-     visits load that directly without needing to re-inject. */
-  const injectPortfolioData = useCallback((incoming: OutlineSection[]) => {
-    if (!portfolioData || didInject.current || alreadyInjected.current) return
-    // Require at least one non-empty value so we don't fire with blank data.
-    const hasContent = portfolioData.firstName || portfolioData.headline || portfolioData.bio || portfolioData.email
-    if (!hasContent) return
-
-    let injected = 0
-    for (const section of incoming) {
-      for (const field of section.fields) {
-        const val = resolveFieldValue(field.label, portfolioData)
-        if (val) { post({ type: 'editor:setField', id: field.id, value: val }); injected++ }
-      }
-    }
-    didInject.current = true
-    // Mark as done so subsequent visits don't overwrite any edits the user has made
-    if (injected > 0 && injectionKey) {
-      try { localStorage.setItem(injectionKey, '1') } catch { /* private browsing */ }
-    }
-  }, [portfolioData, post, injectionKey])
+  /* No per-field injection needed: when there is no saved snapshot the iframe
+     loads /preview.html?id=<slug>&d=<portfolio-data> which makes the template
+     render with real student data via the PERSONAS override in data.jsx.
+     After the first auto-save the snapshot is stored and subsequent visits
+     load it directly — student edits are preserved throughout. */
 
   /* Inbound canvas events */
   useEffect(() => {
@@ -250,7 +199,6 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
       } else if (d.type === 'editor:outline' && Array.isArray(d.sections)) {
         setSections(d.sections)
         setLoading(false)   // template is ready - dismiss the loader
-        injectPortfolioData(d.sections)
       } else if (d.type === 'editor:fieldInput' && d.id) {
         setSections((prev) => patchField(prev, d.id, d.value))
       } else if (d.type === 'editor:select' && d.id) {
@@ -263,7 +211,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [save, requestImageFor, injectPortfolioData])
+  }, [save, requestImageFor])
 
   const deviceW = DEVICE_W[device]
   const statusText = status === 'saving' ? 'Saving...' : status === 'saved' ? 'All changes saved' : 'Auto-saves'
@@ -391,7 +339,7 @@ export default function StudioClient({ initialHtml, templateName, templateSlug, 
                   className={styles.canvas}
                   title="Portfolio editor"
                   sandbox="allow-scripts allow-same-origin"
-                  src={`/preview.html?id=${encodeURIComponent(templateSlug!)}`}
+                  src={`/preview.html?id=${encodeURIComponent(templateSlug!)}${studentParam}`}
                 />
               )}
             </div>

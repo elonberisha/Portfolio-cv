@@ -257,3 +257,58 @@ const DEFAULT_PERSONA = PERSONAS.designer;
 
 window.PERSONAS = PERSONAS;
 window.DEFAULT_PERSONA = DEFAULT_PERSONA;
+
+// ── Student data override ────────────────────────────────────
+// When preview.html is loaded with ?d=<base64-portfolio-data>, replace every
+// PERSONA entry with the student's real data so ALL templates render their
+// own content instead of the demo content. The original PERSONAS remain
+// untouched when there is no ?d= param (template gallery / preview pages).
+if (window.__STUDENT__) {
+  (function () {
+    var s = window.__STUDENT__;
+
+    function dateRange(a, b) {
+      var from = (a || '').slice(0, 4);
+      var to   = (b || '').slice(0, 4);
+      if (!from && !to) return '';
+      if (from === to)  return from;
+      return from + (to ? '–' + to : '–');
+    }
+
+    var sp = {
+      name:      [s.firstName, s.lastName].filter(Boolean).join(' ') || '',
+      role:      s.headline || '',
+      school:    s.location || '',
+      location:  s.location || '',
+      pronouns:  '',
+      tagline:   s.bio || '',
+      email:     s.email || '',
+      phone:     s.phone || '',
+      website:   s.website || '',
+      socials:   (s.links || []).map(function(l){ return l.url; }).filter(Boolean),
+      now:       [],
+      projects: (s.projects || []).map(function(p){
+        return { title: p.title||'', kind: p.techStack||'', year: '', note: p.description||'', url: p.liveUrl||p.sourceUrl||'' };
+      }),
+      experience: (s.experience || []).map(function(e){
+        return { role: e.role||'', org: e.company||'', time: dateRange(e.startDate, e.endDate), note: e.description||'' };
+      }),
+      education: (s.education || []).map(function(e){
+        return { degree: e.degree||'', org: e.institution||'', time: dateRange(e.startDate, e.endDate) };
+      }),
+      skills:       (s.skills   || []).map(function(sk){ return typeof sk === 'string' ? sk : (sk.name||''); }).filter(Boolean),
+      languages:    (s.languages|| []).map(function(l){ return l.language + (l.proficiency ? ' ('+l.proficiency.toUpperCase()+')' : ''); }),
+      awards:       [],
+      writing:      [],
+      testimonials: [],
+    };
+
+    // Replace every persona key so whichever one a template picks it still
+    // gets the student's data. Merge so template-specific structural keys not
+    // covered above (e.g. athleticProfile.sport) degrade gracefully to ''.
+    Object.keys(PERSONAS).forEach(function(k) {
+      PERSONAS[k] = Object.assign({}, PERSONAS[k], sp);
+    });
+    window.DEFAULT_PERSONA = sp;
+  })();
+}

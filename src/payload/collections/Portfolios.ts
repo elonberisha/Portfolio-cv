@@ -103,6 +103,21 @@ export const Portfolios: CollectionConfig = {
       },
     },
     {
+      name: 'phone',
+      type: 'text',
+      admin: { description: 'Contact phone number (optional)' },
+    },
+    {
+      name: 'location',
+      type: 'text',
+      admin: { description: 'City, Country (e.g. "Prishtinë, Kosovo")' },
+    },
+    {
+      name: 'website',
+      type: 'text',
+      admin: { description: 'Personal website URL' },
+    },
+    {
       name: 'languages',
       type: 'array',
       admin: { description: 'Spoken languages' },

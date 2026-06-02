@@ -8,6 +8,11 @@
   var mobile = new URLSearchParams(location.search).get('mobile') === '1';
   document.write('<meta name="viewport" content="' + (mobile ? 'width=375' : 'width=1440') + '">');
 })();
+/* Student data override — must run BEFORE data.jsx so PERSONAS are replaced */
+(function(){
+  var d = new URLSearchParams(location.search).get('d');
+  if (d) { try { window.__STUDENT__ = JSON.parse(decodeURIComponent(atob(d))); } catch(e) {} }
+})();
 </script>
 <title>Template Preview</title>
 <link rel="stylesheet" href="shell.css" />
