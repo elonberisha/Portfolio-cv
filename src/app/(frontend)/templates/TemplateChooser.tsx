@@ -29,6 +29,12 @@ const STEPS = [
   'Getting it ready',
 ]
 
+// Duration of ONE full loading cycle. Every user sees at least one complete
+// cycle; if setup is still in flight when a cycle ends, the overlay restarts
+// from 0 (see the coordinator effect in TemplateChooser). Keep this in sync
+// with the `_ov_crawl` animation duration in the overlay styles below.
+const LOOP_MS = 4000
+
 function SelectingOverlay({ name }: { name: string }) {
   const [phraseIdx, setPhraseIdx] = useState(0)
   const [activeSteps, setActiveSteps] = useState(1)
@@ -39,9 +45,11 @@ function SelectingOverlay({ name }: { name: string }) {
   }, [])
 
   useEffect(() => {
-    const delays = [600, 1400, 2400]
-    const timers = delays.map((d, i) => setTimeout(() => setActiveSteps(i + 2), d))
-    return () => timers.forEach(clearTimeout)
+    // Reveal each step in turn, then mark them ALL done just before the cycle
+    // ends so a completed loop reads as a finished pass before it repeats.
+    const reveal = [600, 1400, 2400].map((d, i) => setTimeout(() => setActiveSteps(i + 2), d))
+    const finish = setTimeout(() => setActiveSteps(STEPS.length + 1), LOOP_MS - 450)
+    return () => { reveal.forEach(clearTimeout); clearTimeout(finish) }
   }, [])
 
   return (
@@ -49,7 +57,7 @@ function SelectingOverlay({ name }: { name: string }) {
       <style>{`
         @keyframes _ov_turn  { to { transform: rotate(360deg); } }
         @keyframes _ov_glow  { from { opacity: 0.5; } to { opacity: 1; } }
-        @keyframes _ov_crawl { 0% { width: 0% } 100% { width: 75% } }
+        @keyframes _ov_crawl { 0% { width: 0% } 92% { width: 88% } 100% { width: 100% } }
         @keyframes _ov_pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(0.65);opacity:0.4} }
 
         ._ov_shell {
@@ -219,6 +227,13 @@ export default function TemplateChooser({ activeSlugs }: { activeSlugs?: string[
   const [selectingSlug, setSelectingSlug] = useState('')
   const [selectingName, setSelectingName] = useState('')
   const [message, setMessage] = useState('')
+  // Loop coordination for the loading overlay. `cycle` bumps each time a full
+  // loading loop completes — its value is used as the overlay's React key so
+  // the animation remounts and restarts from 0. Work results land in refs so
+  // the coordinator can read them at each loop boundary without re-rendering.
+  const [cycle, setCycle] = useState(0)
+  const pendingRedirect = useRef<string | null>(null)
+  const selectFailed = useRef<string | null>(null)
 
   const catalog = useMemo(() => {
     if (!activeSlugs || activeSlugs.length === 0) return TEMPLATE_CATALOG
@@ -237,10 +252,17 @@ export default function TemplateChooser({ activeSlugs }: { activeSlugs?: string[
   }
 
   async function chooseTemplate(slug: string, name: string) {
-    setSelectingSlug(slug)
+    // Kick off the overlay and reset loop state.
+    pendingRedirect.current = null
+    selectFailed.current = null
+    setCycle(0)
     setSelectingName(name)
     setMessage('')
+    setSelectingSlug(slug)
 
+    // Fire the request in the background. We do NOT navigate here — the
+    // coordinator effect navigates only at a loop boundary, guaranteeing every
+    // user sees at least one full loading cycle even when this resolves fast.
     try {
       const res = await fetch('/api/select-template', {
         method: 'POST',
@@ -250,35 +272,57 @@ export default function TemplateChooser({ activeSlugs }: { activeSlugs?: string[
       })
 
       if (res.status === 401) {
-        // Not logged in — hard-navigate so auth cookie is re-evaluated
-        window.location.href = `/signup?template=${slug}`
+        // Not logged in — send to signup (cookie re-evaluated on hard nav).
+        pendingRedirect.current = `/signup?template=${slug}`
         return
       }
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
 
       if (!res.ok) {
-        setMessage(data.error || 'Could not select this template.')
-        setSelectingSlug('')
-        setSelectingName('')
+        selectFailed.current = (data && data.error) || 'Could not select this template.'
         return
       }
 
-      // Hard navigation keeps the overlay visible until the new page actually
-      // loads. Using router.push + router.refresh() can race and reset client
-      // state, which makes the overlay vanish without navigating.
-      window.location.href = data.redirect || `/dashboard?template=${slug}`
+      pendingRedirect.current = (data && data.redirect) || `/dashboard?template=${slug}`
     } catch {
-      setMessage('Could not select this template. Please try again.')
-      setSelectingSlug('')
-      setSelectingName('')
+      selectFailed.current = 'Could not select this template. Please try again.'
     }
   }
 
+  // Loop coordinator: runs once per loading cycle. At each loop boundary it
+  // decides whether to navigate (work done), abort (work failed), or loop
+  // again (work still pending). The minimum wait is exactly one LOOP_MS because
+  // the first decision only happens after the first cycle completes.
+  useEffect(() => {
+    if (!selectingSlug) return
+    const t = setTimeout(() => {
+      if (selectFailed.current) {
+        // Surface the error and tear down the overlay.
+        setMessage(selectFailed.current)
+        selectFailed.current = null
+        pendingRedirect.current = null
+        setSelectingSlug('')
+        setSelectingName('')
+        setCycle(0)
+        return
+      }
+      if (pendingRedirect.current) {
+        // Hard navigation keeps the overlay up until the next page paints.
+        window.location.href = pendingRedirect.current
+        return
+      }
+      // Still preparing — restart the animation and run another loop.
+      setCycle((c) => c + 1)
+    }, LOOP_MS)
+    return () => clearTimeout(t)
+  }, [selectingSlug, cycle])
+
   return (
     <>
-      {/* Full-screen loading overlay */}
-      {selectingSlug && <SelectingOverlay name={selectingName} />}
+      {/* Full-screen loading overlay — keyed on `cycle` so each completed loop
+          remounts and replays the animation from 0 until setup is ready. */}
+      {selectingSlug && <SelectingOverlay key={cycle} name={selectingName} />}
 
       <div className={styles.toolbar}>
         <div className={styles.filterGroup} aria-label="Filter templates by faculty group">
